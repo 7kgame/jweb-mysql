@@ -1,0 +1,46 @@
+{
+  "name": "jweb-mysql",
+  "version": "0.0.1",
+  "description": "mysql dao implementation for jweb",
+  "main": "build/index.js",
+  "typings": "types/index.d.ts",
+  "files": [
+    "build/**/*.js",
+    "types/*.d.ts"
+  ],
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/7kgame/jweb-mysql.git"
+  },
+  "keywords": [
+    "mysql",
+    "nodejs",
+    "typescript",
+    "jweb"
+  ],
+  "author": "cyij2006@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/7kgame/jweb-mysql/issues"
+  },
+  "homepage": "https://github.com/7kgame/jweb-mysql#readme",
+  "dependencies": {
+    "mysql": "^2.16.0"
+  },
+  "devDependencies": {
+    "@types/mysql": "^2.15.5",
+    "@types/node": "^10.12.18",
+    "eslint": "^5.12.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "tsc": "^1.20150623.0",
+    "tslint": "^5.12.1",
+    "typescript": "^3.2.2",
+    "typescript-eslint-parser": "^21.0.2"
+  }
+}
