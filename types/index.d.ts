@@ -1,7 +1,7 @@
-import { createPool, Pool, PoolConnection } from 'mysql';
+import { createPool, Pool, PoolConnection } from 'mysql'
 
 export default interface MysqlDao {
-  connect (): Promise<PoolConnection>;
-  getClient (): PoolConnection;
-  disconnect (): Promise<void>;
+  connect (): Promise<PoolConnection>
+  getClient (): PoolConnection
+  disconnect (): Promise<void>
 }

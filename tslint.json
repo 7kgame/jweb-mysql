@@ -6,7 +6,8 @@
         "forin": true,
         "indent": [
             true,
-            4
+            "spaces",
+            2
         ],
         "label-position": true,
         "max-line-length": [
@@ -41,7 +42,7 @@
         "radix": true,
         "semicolon": [
             true,
-            "always"
+            "never"
         ],
         "triple-equals": [
             true,
