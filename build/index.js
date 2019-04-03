@@ -56,7 +56,7 @@ class MysqlDao {
         });
     }
     getClient() {
-        return this.connection;
+        return this.pool;
     }
     disconnect() {
         return __awaiter(this, void 0, void 0, function* () {
