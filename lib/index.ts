@@ -51,8 +51,8 @@ export default class MysqlDao {
     return this.connection
   }
 
-  public getClient (): PoolConnection {
-    return this.connection
+  public getClient (): Pool {
+    return this.pool
   }
 
   public async disconnect (): Promise<void> {
