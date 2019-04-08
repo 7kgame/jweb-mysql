@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "tsc": "tsc",
-    "test": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/**/*.ts"
+    "test": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/**/*.ts",
+    "test-util": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/utils.test.ts"
   },
   "repository": {
     "type": "git",
