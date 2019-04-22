@@ -88,10 +88,18 @@ export default class MysqlDao {
 
   public async select (entity: Function, options?: SelectOptions | object, columns?: string[]) {
     let template = Utils.generateSelectSql(getTableNameBy(entity), options, columns)
-    return this.query(template)
+    const data = await this.query(template)
+    if (!data) {
+      return []
+    }
+    const ret: any[] = []
+    data.forEach(item => {
+      ret.push(JSON.parse(JSON.stringify(item)))
+    })
+    return ret
   }
 
-  public async query (sql: string, valueset?: any) {
+  public async query (sql: string, valueset?: any): Promise<any> {
     printSql(sql)
     return new Promise((resolve, reject) => {
       this.getClient().query(sql, valueset || [], function(err, results, fields) {

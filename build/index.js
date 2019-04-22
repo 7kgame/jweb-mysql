@@ -95,7 +95,15 @@ class MysqlDao {
     select(entity, options, columns) {
         return __awaiter(this, void 0, void 0, function* () {
             let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), options, columns);
-            return this.query(template);
+            const data = yield this.query(template);
+            if (!data) {
+                return [];
+            }
+            const ret = [];
+            data.forEach(item => {
+                ret.push(JSON.parse(JSON.stringify(item)));
+            });
+            return ret;
         });
     }
     query(sql, valueset) {
