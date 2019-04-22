@@ -119,7 +119,6 @@ class MysqlDao {
             }
             let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
             const data = yield this.query(template);
-            console.log(data, '000---');
             if (!data || data.length < 1) {
                 return null;
             }
