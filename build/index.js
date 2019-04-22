@@ -92,9 +92,9 @@ class MysqlDao {
             return this.query(template);
         });
     }
-    select(entity, options, columns) {
+    select(entity, where, columns) {
         return __awaiter(this, void 0, void 0, function* () {
-            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), options, columns);
+            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
             const data = yield this.query(template);
             if (!data) {
                 return [];
@@ -104,6 +104,22 @@ class MysqlDao {
                 ret.push(JSON.parse(JSON.stringify(item)));
             });
             return ret;
+        });
+    }
+    getEntity(entity, where, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (typeof where['where'] === 'undefined') {
+                where = {
+                    where: Object.assign({ _op: 'and' }, where),
+                    limit: { limit: 1 }
+                };
+            }
+            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
+            const data = yield this.query(template);
+            if (!data) {
+                return null;
+            }
+            return JSON.parse(JSON.stringify(data[0]));
         });
     }
     query(sql, valueset) {

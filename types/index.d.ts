@@ -11,8 +11,9 @@ export default interface MysqlDao {
   getClient (): Pool
   disconnect (): Promise<void>
   insert (entity: object): Promise<any>
-  delete (entity: Function, where?: SelectOptions | object): Promise<any>
-  update (entity: object, where?: SelectOptions | object): Promise<any>
-  select (entity: Function, options?: SelectOptions | object, columns?: string[]): Promise<any>
+  delete (entity: Function, where: SelectOptions | object): Promise<any>
+  update (entity: object, where: SelectOptions | object): Promise<any>
+  select (entity: Function, where?: SelectOptions | object, columns?: string[]): Promise<any>
+  getEntity (entity: Function, where: SelectOptions | object, columns?: string[]): Promise<any>
   query (sql: string, valueset?: object): Promise<any>
 }

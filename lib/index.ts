@@ -75,19 +75,19 @@ export default class MysqlDao {
     return this.query(template)
   }
 
-  public async update (entity: object, where?: SelectOptions | object) {
+  public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
     return this.query(template)
   }
 
-  public async delete (entity: Function, where?: SelectOptions | object) {
+  public async delete (entity: Function, where: SelectOptions | object) {
     let template = Utils.generateDeleteSql(getTableNameBy(entity), where)
     return this.query(template)
   }
 
-  public async select (entity: Function, options?: SelectOptions | object, columns?: string[]) {
-    let template = Utils.generateSelectSql(getTableNameBy(entity), options, columns)
+  public async select (entity: Function, where?: SelectOptions | object, columns?: string[]) {
+    let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
     const data = await this.query(template)
     if (!data) {
       return []
@@ -97,6 +97,21 @@ export default class MysqlDao {
       ret.push(JSON.parse(JSON.stringify(item)))
     })
     return ret
+  }
+
+  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[]) {
+    if (typeof where['where'] === 'undefined') {
+      where = {
+        where: {_op: 'and', ...where},
+        limit: {limit: 1}
+      }
+    }
+    let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
+    const data = await this.query(template)
+    if (!data) {
+      return null
+    }
+    return JSON.parse(JSON.stringify(data[0]))
   }
 
   public async query (sql: string, valueset?: any): Promise<any> {
