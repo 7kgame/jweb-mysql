@@ -1,5 +1,10 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
-import { SelectOptions } from '../lib/utils'
+
+export interface SelectOptions {
+  where: { _op?: string, [name: string]: any },
+  orderby?: { column: string, _op: string },
+  limit?: { limit: number, start?: number }
+}
 
 export default interface MysqlDao {
   connect (): Promise<PoolConnection>
