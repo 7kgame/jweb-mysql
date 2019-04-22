@@ -9,12 +9,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const mysql_1 = require("mysql");
+const utils_1 = require("./utils");
+const printSql = function (sql) {
+    if (process.env.NODE_ENV !== 'development') {
+        return;
+    }
+    console.log(sql);
+};
 const defaultOptions = {
     host: '127.0.0.1',
     port: 3306,
     user: '',
     password: '',
-    connectionLimit: require('os').cpus().length
+    database: '',
+    connectionLimit: require("os").cpus().length
 };
 class MysqlDao {
     constructor(options) {
@@ -22,12 +30,11 @@ class MysqlDao {
         if (!options) {
             throw new Error('mysql config options is missing');
         }
-        for (let k in defaultOptions) {
+        // 重写，支持客户端配置参数，而不只是使用默认参数
+        Object.assign(this.options, defaultOptions);
+        for (let k in options) {
             if (typeof options[k] !== 'undefined') {
                 this.options[k] = options[k];
-            }
-            else {
-                this.options[k] = defaultOptions[k];
             }
         }
     }
@@ -63,6 +70,46 @@ class MysqlDao {
             if (this.pool) {
                 yield this.pool.end();
             }
+        });
+    }
+    insert(entity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const valueset = entity['toObject'] ? entity['toObject']() : entity;
+            let template = utils_1.default.generateInsertSql(utils_1.getTableNameBy(entity), valueset);
+            return this.query(template);
+        });
+    }
+    update(entity, where) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const valueset = entity['toObject'] ? entity['toObject']() : entity;
+            let template = utils_1.default.generateUpdateSql(utils_1.getTableNameBy(entity), valueset, where);
+            return this.query(template);
+        });
+    }
+    delete(entity, where) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let template = utils_1.default.generateDeleteSql(utils_1.getTableNameBy(entity), where);
+            return this.query(template);
+        });
+    }
+    select(entity, options, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), options, columns);
+            return this.query(template);
+        });
+    }
+    query(sql, valueset) {
+        return __awaiter(this, void 0, void 0, function* () {
+            printSql(sql);
+            return new Promise((resolve, reject) => {
+                this.getClient().query(sql, valueset || [], function (err, results, fields) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(results);
+                });
+            });
         });
     }
 }
