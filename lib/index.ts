@@ -72,18 +72,21 @@ export default class MysqlDao {
   public async insert(entity: object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateInsertSql(getTableNameBy(entity), valueset)
-    return this.query(template)
+    const ret = await this.query(template)
+    return ret.insertId
   }
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
-    return this.query(template)
+    const ret = await this.query(template)
+    return ret.affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
     let template = Utils.generateDeleteSql(getTableNameBy(entity), where)
-    return this.query(template)
+    const ret = await this.query(template)
+    return ret.affectedRows
   }
 
   public async select (entity: Function, where?: SelectOptions | object, columns?: string[]) {
@@ -108,7 +111,7 @@ export default class MysqlDao {
     }
     let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
     const data = await this.query(template)
-    if (!data) {
+    if (!data || data.length < 1) {
       return null
     }
     return JSON.parse(JSON.stringify(data[0]))

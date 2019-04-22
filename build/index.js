@@ -76,20 +76,23 @@ class MysqlDao {
         return __awaiter(this, void 0, void 0, function* () {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
             let template = utils_1.default.generateInsertSql(utils_1.getTableNameBy(entity), valueset);
-            return this.query(template);
+            const ret = yield this.query(template);
+            return ret.insertId;
         });
     }
     update(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
             let template = utils_1.default.generateUpdateSql(utils_1.getTableNameBy(entity), valueset, where);
-            return this.query(template);
+            const ret = yield this.query(template);
+            return ret.affectedRows;
         });
     }
     delete(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
             let template = utils_1.default.generateDeleteSql(utils_1.getTableNameBy(entity), where);
-            return this.query(template);
+            const ret = yield this.query(template);
+            return ret.affectedRows;
         });
     }
     select(entity, where, columns) {
@@ -116,7 +119,8 @@ class MysqlDao {
             }
             let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
             const data = yield this.query(template);
-            if (!data) {
+            console.log(data, '000---');
+            if (!data || data.length < 1) {
                 return null;
             }
             return JSON.parse(JSON.stringify(data[0]));
