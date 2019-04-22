@@ -104,7 +104,12 @@ class MysqlDao {
             }
             const ret = [];
             data.forEach(item => {
-                ret.push(JSON.parse(JSON.stringify(item)));
+                if (typeof entity['clone'] === 'function') {
+                    ret.push(entity['clone'](item));
+                }
+                else {
+                    ret.push(JSON.parse(JSON.stringify(item)));
+                }
             });
             return ret;
         });
@@ -122,7 +127,12 @@ class MysqlDao {
             if (!data || data.length < 1) {
                 return null;
             }
-            return JSON.parse(JSON.stringify(data[0]));
+            if (typeof entity['clone'] === 'function') {
+                return entity['clone'](data[0]);
+            }
+            else {
+                return JSON.parse(JSON.stringify(data[0]));
+            }
         });
     }
     query(sql, valueset) {
