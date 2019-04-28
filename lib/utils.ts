@@ -1,8 +1,8 @@
 import { escape, escapeId } from "mysql"
 
 interface SelectOptions {
-  where: { _op?: string, [name: string]: any },
-  orderby?: { column: string, _op: string },
+  where: { $op?: string, [name: string]: any },
+  orderby?: { column: string, $op: string },
   limit?: { limit: number, start?: number }
 }
 
@@ -23,23 +23,23 @@ export default class Utils {
   static methods = {
     templateAppendWhere(template: string, where: object): string {
       template += " WHERE "
-      if (Object.keys(where).length > 1 && where['_op'] !== 'and' && where['_op'] !== 'or') {
-        throw new Error('must specify _op with \'and\' or \'or\'')
+      if (Object.keys(where).length > 1 && where['$op'] !== 'and' && where['$op'] !== 'or') {
+        throw new Error('must specify $op with \'and\' or \'or\'')
       }
       for (let  [k, v] of Object.entries(where)) {
-        if (k === '_op') {
+        if (k === '$op') {
           continue
         }
         var pos = (typeof v === 'string') ? v.toUpperCase().indexOf('LIKE') : -1
         if (pos !== -1) {
-          template += `${escapeId(k)} LIKE ${escape(v.slice(pos + 5))}${where['_op'] ? " " + where['_op'].toUpperCase() + " " : ''}`
+          template += `${escapeId(k)} LIKE ${escape(v.slice(pos + 5))}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`
         } else {
-          template += `${escapeId(k)}=${escape(v)}${where['_op'] ? " " + where['_op'].toUpperCase() + " " : ''}`
+          template += `${escapeId(k)}=${escape(v)}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`
         }
       }
-      if (where['_op'] === 'and') {
+      if (where['$op'] === 'and') {
         template = template.slice(0, -5)
-      } else if (where['_op'] === 'or') {
+      } else if (where['$op'] === 'or') {
         template = template.slice(0, -4)
       }
       return template
@@ -52,9 +52,9 @@ export default class Utils {
       template += escape(limit)
       return template
     },
-    templateAppendOrderBy(template: string, { column, _op }) {
+    templateAppendOrderBy(template: string, { column, $op }) {
       template += ' ORDER BY '
-      template += `${escapeId(column)} ${_op.toUpperCase()}`
+      template += `${escapeId(column)} ${$op.toUpperCase()}`
       return template
     }
   }
@@ -79,7 +79,7 @@ export default class Utils {
     }
     template = template.slice(0, -1)
     if (where) {
-      where['_op'] = where['_op'] || 'and'
+      where['$op'] = where['$op'] || 'and'
       template = Utils.methods.templateAppendWhere(template, where)
     }
     template += ';'
@@ -89,7 +89,7 @@ export default class Utils {
   static generateDeleteSql(tbName: string, where?: SelectOptions | object): string {
     let template = `DELETE FROM ${escapeId(tbName)}`
     if (where) {
-      where['_op'] = where['_op'] || 'and'
+      where['$op'] = where['$op'] || 'and'
       template = Utils.methods.templateAppendWhere(template, where)
     }
     template += ';'
@@ -117,7 +117,7 @@ export default class Utils {
       delete options['limit']
     }
     if (options && typeof options['where'] === 'undefined') {
-      options['_op'] = 'and'
+      options['$op'] = 'and'
       template = Utils.methods.templateAppendWhere(template, options)
     }
     template += ';'

@@ -109,7 +109,7 @@ export default class MysqlDao {
   public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[]) {
     if (typeof where['where'] === 'undefined') {
       where = {
-        where: {_op: 'and', ...where},
+        where: {$op: 'and', ...where},
         limit: {limit: 1}
       }
     }

@@ -1,5 +1,4 @@
 import MysqlDao from "../lib/index"
-import Utils from "../lib/utils"
 import * as assert from "assert"
 import "mocha"
 
