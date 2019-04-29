@@ -13,7 +13,7 @@ export const getTableNameBy = function (entity: any): string {
     entity = entity.constructor
   }
   if (entity['$tableName']) {
-    console.log('utils.js line 16' + entity['$tableName'])
+    // console.log('utils.js line 16' + entity['$tableName'])
     return entity['$tableName']
   } else {
     throw new Error('tableName is not found in ' + entity)
