@@ -1,8 +1,8 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
 
 export interface SelectOptions {
-  where: { _op?: string, [name: string]: any },
-  orderby?: { column: string, _op: string },
+  where: { $op?: string, [name: string]: any },
+  orderby?: { column: string, $op: string },
   limit?: { limit: number, start?: number }
 }
 
