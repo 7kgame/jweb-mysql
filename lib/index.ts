@@ -35,7 +35,7 @@ export default class MysqlDao {
     }
   }
 
-  private getConnection(): Promise<PoolConnection> {
+  private async getConnection(): Promise<PoolConnection> {
     return new Promise((resolve, reject) => {
       this.pool.getConnection(function(err, conn) {
         if (err) {
@@ -55,7 +55,7 @@ export default class MysqlDao {
     if (!this.pool) {
       this.pool = createPool(this.options)
     }
-    this.connection = await this.getConnection()
+    // this.connection = await this.getConnection()
     return this.connection
   }
 

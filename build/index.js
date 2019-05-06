@@ -39,14 +39,16 @@ class MysqlDao {
         }
     }
     getConnection() {
-        return new Promise((resolve, reject) => {
-            this.pool.getConnection(function (err, conn) {
-                if (err) {
-                    return reject(err);
-                }
-                if (conn) {
-                    return resolve(conn);
-                }
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => {
+                this.pool.getConnection(function (err, conn) {
+                    if (err) {
+                        return reject(err);
+                    }
+                    if (conn) {
+                        return resolve(conn);
+                    }
+                });
             });
         });
     }
@@ -58,7 +60,7 @@ class MysqlDao {
             if (!this.pool) {
                 this.pool = mysql_1.createPool(this.options);
             }
-            this.connection = yield this.getConnection();
+            // this.connection = await this.getConnection()
             return this.connection;
         });
     }
