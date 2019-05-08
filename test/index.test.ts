@@ -2,38 +2,82 @@ import MysqlDao from "../lib/index"
 import * as assert from "assert"
 import "mocha"
 
-let mysql, dbName = "world"
+let mysql
+class User {
+  uid: string
+  name: string
+  age: number
+  constructor(uid, name, age) {
+    this.uid = uid
+    this.name = name
+    this.age = age
+  }
+}
+
+User.prototype['toObject'] = function () {
+  const fields = Object.getOwnPropertyNames(this)
+  const obj = {}
+  fields.forEach(field => {
+    if (this[field] !== undefined) {
+      obj[field] = this[field]
+    }
+  })
+  return obj
+}
+User['clone'] = function (data: object) {
+  if (!data) {
+    return null
+  }
+  const clz: any = User
+  const entity = new clz()
+  const fields = Object.getOwnPropertyNames(entity)
+  fields.forEach(field => {
+    if (typeof data[field] !== 'undefined') {
+      entity[field] = data[field]
+    }
+  })
+  return entity
+}
+User['$tableName'] = 'user'
+
 describe("连接mysql数据库", function() {
   it("获取数据库实例", done => {
     mysql = new MysqlDao({
       user: "root",
-      password: "root"
+      password: "root",
+      database: 'test'
     })
     mysql.connect().then(conn => {
       assert.notStrictEqual(conn, null)
       assert.notStrictEqual(conn, undefined)
+      done()
+    }).catch(err => {
+      console.log(err)
+      done()
+    })
+  })
+})
+
+describe("数据库删除", () => {
+  it("删除数据", done => {
+    mysql.delete(User, {uid: '123456789'}).then(res => {
+      assert(res > 0)
       done()
     })
   })
 })
 
 describe("向数据库中插入数据", function() {
-  let tbName = "city"
-  let values = {
-    Name: "WuHan",
-    CountryCode: "CHN",
-    District: "South",
-    Population: "10000000"
-  }
-
-  it("向city表中插入一条数据", done => {
+  let user = new User('123456789', 'wuming', 21)
+  it("向user表中插入一条数据", done => {
     mysql
-      .insert(dbName, tbName, values)
+      .insert(user)
       .then(results => {
-        assert(results.affectedRows > 0)
+        assert(results !== undefined)
         done()
       })
       .catch(err => {
+        console.log(err)
         assert(false)
         done()
       })
@@ -42,48 +86,35 @@ describe("向数据库中插入数据", function() {
 })
 
 describe("数据库更新", function() {
+  let user = new User('123456789', 'wumingliang', 18)
   it("更新数据", done => {
-    mysql.update(dbName, 'city', {Population: 7000000}, {Name: 'ChangSha'}).then(res => {
-      assert(res.affectedRows > 0)
+    mysql.update(user, {uid: '123456789'}).then(res => {
+      assert(res > 0)
       done()
-    })
-  })
-})
-
-describe("数据库删除", () => {
-  it("删除数据", done => {
-    mysql.delete(dbName, 'city', {Name: 'ChangSha'}).then(res => {
-      done()
-      assert(res.affectedRows > 0)
     })
   })
 })
 
 describe("数据库查询", () => {
   it("查询一条数据", done => {
-    mysql.select(dbName, 'city', ['*'], {where:{Name: 'Wuhan'}}).then(res => {
+    mysql.select(User, {where:{uid: '123456789'}}).then(res => {
       assert(res.length > 0)
       done()
     }).catch(err => done())
   })
 
   it("order by查询&模糊查询", done => {
-    mysql.select(dbName, 'city', ['Name', 'CountryCode'], {where:{Name: 'like Ch%'}, orderby: {column:'Name', op:'asc'}}).then(res => {
+    mysql.select(User, {where:{uid: 'like 123%'}, orderby: {column:'uid', $op:'asc'}}, ['uid', 'age']).then(res => {
       assert(res.length > 0)
       done()
     })
   })
 
   it("limit查询&没有where", done => {
-    mysql.select(dbName, 'city', ['*'], {limit:{limit:10}}).then(res => {
+    mysql.select(User, {limit:{limit:10}}).then(res => {
+      assert(res.length > 0)
       done()
     })
   })
 })
-describe("关闭数据库", () => {
-  it("关闭数据库", (done) => {
-    mysql.disconnect().then(res => {
-      done()
-    })
-  })
-})
+

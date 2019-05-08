@@ -1,4 +1,4 @@
-import { createPool, Pool, PoolConnection } from 'mysql'
+import { createPool, Pool, PoolConnection } from 'mysql2/promise'
 import Utils, {getTableNameBy, SelectOptions} from './utils'
 
 const printSql = function (sql: string): void {
@@ -36,16 +36,7 @@ export default class MysqlDao {
   }
 
   private getConnection(): Promise<PoolConnection> {
-    return new Promise((resolve, reject) => {
-      this.pool.getConnection(function(err, conn) {
-        if (err) {
-          return reject(err)
-        }
-        if (conn) {
-          return resolve(conn)
-        }
-      })
-    })
+    return this.pool.getConnection()
   }
 
   public async connect(): Promise<PoolConnection> {
@@ -53,7 +44,7 @@ export default class MysqlDao {
       throw new Error('database config options is missing')
     }
     if (!this.pool) {
-      this.pool = createPool(this.options)
+      this.pool = await createPool(this.options)
     }
     this.connection = await this.getConnection()
     return this.connection
@@ -73,20 +64,20 @@ export default class MysqlDao {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateInsertSql(getTableNameBy(entity), valueset)
     const ret = await this.query(template)
-    return ret.insertId
+    return ret[0].insertId
   }
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
     const ret = await this.query(template)
-    return ret.affectedRows
+    return ret[0].affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
     let template = Utils.generateDeleteSql(getTableNameBy(entity), where)
     const ret = await this.query(template)
-    return ret.affectedRows
+    return ret[0].affectedRows
   }
 
   public async select (entity: Function, where?: SelectOptions | object, columns?: string[]) {
@@ -96,7 +87,7 @@ export default class MysqlDao {
       return []
     }
     const ret: any[] = []
-    data.forEach(item => {
+    data[0].forEach(item => {
       if (typeof entity['clone'] === 'function') {
         ret.push(entity['clone'](item))
       } else {
@@ -127,14 +118,6 @@ export default class MysqlDao {
 
   public async query (sql: string, valueset?: any): Promise<any> {
     printSql(sql)
-    return new Promise((resolve, reject) => {
-      this.getClient().query(sql, valueset || [], function(err, results, fields) {
-        if (err) {
-          reject(err)
-          return
-        }
-        resolve(results)
-      })
-    })
+    return this.getClient().query(sql, valueset || [])
   }
 }

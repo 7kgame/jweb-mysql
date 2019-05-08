@@ -11,7 +11,8 @@
   "scripts": {
     "tsc": "tsc",
     "test": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/**/*.ts",
-    "test-util": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/utils.test.ts"
+    "test-util": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/utils.test.ts",
+    "test-index": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/index.test.ts"
   },
   "repository": {
     "type": "git",
@@ -31,9 +32,8 @@
   "homepage": "https://github.com/7kgame/jweb-mysql#readme",
   "dependencies": {
     "@types/mocha": "^5.2.6",
-    "@types/mysql": "^2.15.5",
     "mocha": "^6.0.2",
-    "mysql": "^2.16.0",
+    "mysql2": "^1.6.5",
     "ts-node": "^8.0.3"
   },
   "devDependencies": {

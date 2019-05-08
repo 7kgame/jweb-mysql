@@ -58,7 +58,9 @@ class MysqlDao {
             if (!this.pool) {
                 this.pool = mysql_1.createPool(this.options);
             }
+            console.log('before connection');
             this.connection = yield this.getConnection();
+            console.log('after connction');
             return this.connection;
         });
     }

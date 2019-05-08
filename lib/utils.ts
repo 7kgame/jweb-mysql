@@ -1,7 +1,7 @@
-import { escape, escapeId } from "mysql"
+import { escape, escapeId } from "mysql2/promise"
 
 interface SelectOptions {
-  where: { $op?: string, [name: string]: any },
+  where?: { $op?: string, [name: string]: any },
   orderby?: { column: string, $op: string },
   limit?: { limit: number, start?: number }
 }
@@ -117,10 +117,10 @@ export default class Utils {
       template = Utils.methods.templateAppendLimit(template, options['limit'])
       delete options['limit']
     }
-    if (options && typeof options['where'] === 'undefined') {
-      options['$op'] = 'and'
-      template = Utils.methods.templateAppendWhere(template, options)
-    }
+    // if (options && typeof options['where'] === 'undefined') {
+    //   options['$op'] = 'and'
+    //   template = Utils.methods.templateAppendWhere(template, options)
+    // }
     template += ';'
     return template
   }
