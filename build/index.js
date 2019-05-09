@@ -103,8 +103,8 @@ class MysqlDao {
         return __awaiter(this, void 0, void 0, function* () {
             if (typeof where['where'] === 'undefined') {
                 where = {
-                    where: Object.assign({ $op: 'and' }, where),
-                    limit: { limit: 1 }
+                    $where: Object.assign({ $op: 'and' }, where),
+                    $limit: { limit: 1 }
                 };
             }
             let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
