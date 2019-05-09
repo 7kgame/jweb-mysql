@@ -1,6 +1,6 @@
 {
   "name": "jweb-mysql",
-  "version": "0.0.15",
+  "version": "0.1.1",
   "description": "mysql dao implementation for jweb",
   "main": "build/index.js",
   "typings": "types/index.d.ts",
@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "tsc": "tsc",
+    "build": "tsc",
     "test": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/**/*.ts",
     "test-util": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/utils.test.ts",
     "test-index": "./node_modules/.bin/mocha -r ./node_modules/ts-node/register test/index.test.ts"
@@ -31,13 +32,13 @@
   },
   "homepage": "https://github.com/7kgame/jweb-mysql#readme",
   "dependencies": {
-    "@types/mocha": "^5.2.6",
-    "mocha": "^6.0.2",
     "mysql2": "^1.6.5",
     "ts-node": "^8.0.3"
   },
   "devDependencies": {
     "@types/node": "^10.12.18",
+    "@types/mocha": "^5.2.6",
+    "mocha": "^6.0.2",
     "tsc": "^1.20150623.0",
     "tslint": "^5.12.1",
     "typescript": "^3.2.2"
