@@ -1,4 +1,4 @@
-import { escape, escapeId } from "mysql2/promise"
+import { escape, escapeId } from "mysql"
 
 interface SelectOptions {
   where?: { $op?: string, [name: string]: any },

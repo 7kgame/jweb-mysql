@@ -1,4 +1,4 @@
-import { createPool, Pool, PoolConnection } from 'mysql2/promise'
+import { createPool, Pool, PoolConnection } from 'mysql'
 import Utils, {getTableNameBy, SelectOptions} from './utils'
 
 const printSql = function (sql: string): void {
@@ -34,10 +34,6 @@ export default class MysqlDao {
     }
   }
 
-  private getConnection(): Promise<PoolConnection> {
-    return this.pool.getConnection()
-  }
-
   public async connect(): Promise<void> {
     if (!this.options) {
       throw new Error('database config options is missing')
@@ -61,20 +57,20 @@ export default class MysqlDao {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateInsertSql(getTableNameBy(entity), valueset)
     const ret = await this.query(template)
-    return ret[0].insertId
+    return ret.insertId
   }
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
     let template = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
     const ret = await this.query(template)
-    return ret[0].affectedRows
+    return ret.affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
     let template = Utils.generateDeleteSql(getTableNameBy(entity), where)
     const ret = await this.query(template)
-    return ret[0].affectedRows
+    return ret.affectedRows
   }
 
   public async select (entity: Function, where?: SelectOptions | object, columns?: string[]) {
@@ -84,7 +80,7 @@ export default class MysqlDao {
       return []
     }
     const ret: any[] = []
-    data[0].forEach(item => {
+    data.forEach(item => {
       if (typeof entity['clone'] === 'function') {
         ret.push(entity['clone'](item))
       } else {
@@ -115,6 +111,14 @@ export default class MysqlDao {
 
   public async query (sql: string, valueset?: any): Promise<any> {
     printSql(sql)
-    return this.getClient().query(sql, valueset || [])
+    return new Promise((resolve, reject) => {
+      this.getClient().query(sql, valueset || [], function(err, results, fields) {
+        if (err) {
+          reject(err)
+          return
+        }
+        resolve(results)
+      })
+    })
   }
 }

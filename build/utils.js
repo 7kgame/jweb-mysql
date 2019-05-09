@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const promise_1 = require("mysql2/promise");
+const mysql_1 = require("mysql");
 exports.getTableNameBy = function (entity) {
     if (typeof entity === 'object') {
         entity = entity.constructor;
@@ -15,21 +15,21 @@ exports.getTableNameBy = function (entity) {
 };
 class Utils {
     static generateInsertSql(tbName, valueset) {
-        let template = `INSERT INTO ${promise_1.escapeId(tbName)}(`;
+        let template = `INSERT INTO ${mysql_1.escapeId(tbName)}(`;
         for (let k of Object.keys(valueset)) {
-            template += promise_1.escapeId(k) + ",";
+            template += mysql_1.escapeId(k) + ",";
         }
         template = template.slice(0, -1) + ") VALUES(";
         for (let v of Object.values(valueset)) {
-            template += promise_1.escape(v) + ",";
+            template += mysql_1.escape(v) + ",";
         }
         template = template.slice(0, -1) + ");";
         return template;
     }
     static generateUpdateSql(tbName, valueset, where) {
-        let template = `UPDATE ${promise_1.escapeId(tbName)} SET `;
+        let template = `UPDATE ${mysql_1.escapeId(tbName)} SET `;
         for (let [k, v] of Object.entries(valueset)) {
-            template += `${promise_1.escapeId(k)}=${promise_1.escape(v)},`;
+            template += `${mysql_1.escapeId(k)}=${mysql_1.escape(v)},`;
         }
         template = template.slice(0, -1);
         if (where) {
@@ -40,7 +40,7 @@ class Utils {
         return template;
     }
     static generateDeleteSql(tbName, where) {
-        let template = `DELETE FROM ${promise_1.escapeId(tbName)}`;
+        let template = `DELETE FROM ${mysql_1.escapeId(tbName)}`;
         if (where) {
             where['$op'] = where['$op'] || 'and';
             template = Utils.methods.templateAppendWhere(template, where);
@@ -52,10 +52,10 @@ class Utils {
         let template = `SELECT `;
         columns = columns || ['*'];
         for (let item of columns) {
-            template += `${promise_1.escapeId(item)},`;
+            template += `${mysql_1.escapeId(item)},`;
         }
         template = template.slice(0, -1);
-        template += ` FROM ${promise_1.escapeId(tbName)}`;
+        template += ` FROM ${mysql_1.escapeId(tbName)}`;
         if (options && options['where']) {
             template = Utils.methods.templateAppendWhere(template, options['where']);
         }
@@ -87,10 +87,10 @@ Utils.methods = {
             }
             var pos = (typeof v === 'string') ? v.toUpperCase().indexOf('LIKE') : -1;
             if (pos !== -1) {
-                template += `${promise_1.escapeId(k)} LIKE ${promise_1.escape(v.slice(pos + 5))}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`;
+                template += `${mysql_1.escapeId(k)} LIKE ${mysql_1.escape(v.slice(pos + 5))}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`;
             }
             else {
-                template += `${promise_1.escapeId(k)}=${promise_1.escape(v)}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`;
+                template += `${mysql_1.escapeId(k)}=${mysql_1.escape(v)}${where['$op'] ? " " + where['$op'].toUpperCase() + " " : ''}`;
             }
         }
         if (where['$op'] === 'and') {
@@ -104,14 +104,14 @@ Utils.methods = {
     templateAppendLimit(template, { limit, start }) {
         template += " LIMIT ";
         if (start) {
-            template += promise_1.escape(start) + ",";
+            template += mysql_1.escape(start) + ",";
         }
-        template += promise_1.escape(limit);
+        template += mysql_1.escape(limit);
         return template;
     },
     templateAppendOrderBy(template, { column, $op }) {
         template += ' ORDER BY ';
-        template += `${promise_1.escapeId(column)} ${$op.toUpperCase()}`;
+        template += `${mysql_1.escapeId(column)} ${$op.toUpperCase()}`;
         return template;
     }
 };

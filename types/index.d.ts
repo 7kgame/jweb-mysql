@@ -1,4 +1,4 @@
-import { createPool, Pool, PoolConnection } from 'mysql2/promise'
+import { createPool, Pool, PoolConnection } from 'mysql'
 
 export interface SelectOptions {
   where: { $op?: string, [name: string]: any },

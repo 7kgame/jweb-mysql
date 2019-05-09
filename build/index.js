@@ -8,7 +8,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const promise_1 = require("mysql2/promise");
+const mysql_1 = require("mysql");
 const utils_1 = require("./utils");
 const printSql = function (sql) {
     if (process.env.NODE_ENV !== 'development') {
@@ -37,16 +37,13 @@ class MysqlDao {
             }
         }
     }
-    getConnection() {
-        return this.pool.getConnection();
-    }
     connect() {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.options) {
                 throw new Error('database config options is missing');
             }
             if (!this.pool) {
-                this.pool = yield promise_1.createPool(this.options);
+                this.pool = yield mysql_1.createPool(this.options);
             }
         });
     }
@@ -65,7 +62,7 @@ class MysqlDao {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
             let template = utils_1.default.generateInsertSql(utils_1.getTableNameBy(entity), valueset);
             const ret = yield this.query(template);
-            return ret[0].insertId;
+            return ret.insertId;
         });
     }
     update(entity, where) {
@@ -73,14 +70,14 @@ class MysqlDao {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
             let template = utils_1.default.generateUpdateSql(utils_1.getTableNameBy(entity), valueset, where);
             const ret = yield this.query(template);
-            return ret[0].affectedRows;
+            return ret.affectedRows;
         });
     }
     delete(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
             let template = utils_1.default.generateDeleteSql(utils_1.getTableNameBy(entity), where);
             const ret = yield this.query(template);
-            return ret[0].affectedRows;
+            return ret.affectedRows;
         });
     }
     select(entity, where, columns) {
@@ -91,7 +88,7 @@ class MysqlDao {
                 return [];
             }
             const ret = [];
-            data[0].forEach(item => {
+            data.forEach(item => {
                 if (typeof entity['clone'] === 'function') {
                     ret.push(entity['clone'](item));
                 }
@@ -126,7 +123,15 @@ class MysqlDao {
     query(sql, valueset) {
         return __awaiter(this, void 0, void 0, function* () {
             printSql(sql);
-            return this.getClient().query(sql, valueset || []);
+            return new Promise((resolve, reject) => {
+                this.getClient().query(sql, valueset || [], function (err, results, fields) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(results);
+                });
+            });
         });
     }
 }
