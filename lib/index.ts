@@ -93,8 +93,8 @@ export default class MysqlDao {
   public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[]) {
     if (typeof where['where'] === 'undefined') {
       where = {
-        where: {$op: 'and', ...where},
-        limit: {limit: 1}
+        $where: {$op: 'and', ...where},
+        $limit: {limit: 1}
       }
     }
     let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
