@@ -50,11 +50,15 @@ class Utils {
     }
     static generateSelectSql(tbName, options, columns) {
         let template = `SELECT `;
-        columns = columns || ['*'];
-        for (let item of columns) {
-            template += `${mysql_1.escapeId(item)},`;
+        if (columns) {
+            for (let item of columns) {
+                template += `${mysql_1.escapeId(item)},`;
+            }
+            template = template.slice(0, -1);
         }
-        template = template.slice(0, -1);
+        else {
+            template += '*';
+        }
         template += ` FROM ${mysql_1.escapeId(tbName)}`;
         if (options && options['where']) {
             template = Utils.methods.templateAppendWhere(template, options['where']);

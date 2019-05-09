@@ -99,12 +99,15 @@ export default class Utils {
 
   static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[]): string {
     let template = `SELECT `
-    columns = columns || ['*']
-    for (let item of columns) {
-      template += `${escapeId(item)},`
+    if (columns) {
+      for (let item of columns) {
+        template += `${escapeId(item)},`
+      }
+      template = template.slice(0, -1)
+    } else {
+      template += '*'
     }
 
-    template = template.slice(0, -1)
     template += ` FROM ${escapeId(tbName)}`
     if (options && options['where']) {
       template = Utils.methods.templateAppendWhere(template, options['where'])
