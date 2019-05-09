@@ -1,9 +1,9 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
 
 export interface SelectOptions {
-  where: { $op?: string, [name: string]: any },
-  orderby?: { column: string, $op: string },
-  limit?: { limit: number, start?: number }
+  $where: { $op?: string, [name: string]: any },
+  $orderby?: { column: string, $op: string },
+  $limit?: { limit: number, start?: number }
 }
 
 export default interface MysqlDao {
