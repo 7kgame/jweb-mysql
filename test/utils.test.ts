@@ -13,7 +13,8 @@ describe("连接mysql数据库", function() {
       password: "root",
       database: dbName
     })
-    mysql.connect().then(conn => {
+    mysql.connect().then(() => {
+      let conn = mysql.getClient()
       assert.notStrictEqual(conn, null)
       assert.notStrictEqual(conn, undefined)
       done()
@@ -71,13 +72,20 @@ describe("测试工具类", () => {
   })
 
   it("SELECT转义后的sql语句", () => {
-    let template = Utils.generateSelectSql(tbName, {where: {Name:'ChangSha'}}, ['Name'])
+    let template = Utils.generateSelectSql(tbName, {$where: {Name:'ChangSha'}}, ['Name'])
     assert.strictEqual(template, "SELECT `Name` FROM `city` WHERE `Name`='ChangSha';")
 
     template = Utils.generateSelectSql(tbName, null, ['District', 'Population'])
     assert.strictEqual(template, "SELECT `District`,`Population` FROM `city`;")
 
-    template = Utils.generateSelectSql(tbName, {where:{Name: "like Chang", CountryCode: "CHN", $op:'and'}, orderby: {column:'Name', $op: 'asc'}, limit:{start:10, limit: 10}}, ['CountryCode'])
+    template = Utils.generateSelectSql(tbName, {$where:{Name: "like Chang", CountryCode: "CHN", $op:'and'}, $orderby: {column:'Name', $op: 'asc'}, $limit:{start:10, limit: 10}}, ['CountryCode'])
     assert.strictEqual(template, "SELECT `CountryCode` FROM `city` WHERE `Name` LIKE 'Chang' AND `CountryCode`='CHN' ORDER BY `Name` ASC LIMIT 10,10;")
+  })
+  it("简单select查询", () => {
+    let template = Utils.generateSelectSql(tbName, {uid: '123'})
+    assert.strictEqual(template, "SELECT `*` FROM `city` WHERE `uid`='123';")
+
+    template = Utils.generateSelectSql(tbName, {name: 'bright'}, ['age', 'name'])
+    assert.strictEqual(template, "SELECT `age`,`name` FROM `city` WHERE `name`='bright';")
   })
 })

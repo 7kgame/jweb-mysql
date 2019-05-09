@@ -32,14 +32,14 @@
   },
   "homepage": "https://github.com/7kgame/jweb-mysql#readme",
   "dependencies": {
-    "mysql": "^2.17.1",
-    "ts-node": "^8.0.3"
+    "mysql": "^2.17.1"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.6",
     "@types/mysql": "^2.15.6",
     "@types/node": "^10.12.18",
     "mocha": "^6.0.2",
+    "ts-node": "^8.1.0",
     "tsc": "^1.20150623.0",
     "tslint": "^5.12.1",
     "typescript": "^3.2.2"
