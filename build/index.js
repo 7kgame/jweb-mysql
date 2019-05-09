@@ -30,10 +30,9 @@ class MysqlDao {
         if (!options) {
             throw new Error('mysql config options is missing');
         }
-        // 重写，支持客户端配置参数，而不只是使用默认参数
         Object.assign(this.options, defaultOptions);
         for (let k in options) {
-            if (typeof options[k] !== 'undefined') {
+            if (typeof this.options[k] !== 'undefined') {
                 this.options[k] = options[k];
             }
         }
