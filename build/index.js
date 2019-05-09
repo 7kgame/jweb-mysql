@@ -48,8 +48,6 @@ class MysqlDao {
             if (!this.pool) {
                 this.pool = yield promise_1.createPool(this.options);
             }
-            this.connection = yield this.getConnection();
-            return this.connection;
         });
     }
     getClient() {

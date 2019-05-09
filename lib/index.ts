@@ -38,15 +38,13 @@ export default class MysqlDao {
     return this.pool.getConnection()
   }
 
-  public async connect(): Promise<PoolConnection> {
+  public async connect(): Promise<void> {
     if (!this.options) {
       throw new Error('database config options is missing')
     }
     if (!this.pool) {
       this.pool = await createPool(this.options)
     }
-    this.connection = await this.getConnection()
-    return this.connection
   }
 
   public getClient (): Pool {

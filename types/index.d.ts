@@ -7,7 +7,7 @@ export interface SelectOptions {
 }
 
 export default interface MysqlDao {
-  connect (): Promise<PoolConnection>
+  connect (): Promise<void>
   getClient (): Pool
   disconnect (): Promise<void>
   insert (entity: object): Promise<any>
