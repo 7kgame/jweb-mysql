@@ -29,7 +29,4 @@ export default interface MysqlDao {
   searchByPage (entity: Function, where: SelectOptions | object, columns?: string[], doEntityClone?: boolean): Promise<Page>
   query (sql: string, valueset?: object, oneLimit?: boolean): Promise<any>
 
-  select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean): Promise<any>
-  getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean): Promise<any>
-
 }

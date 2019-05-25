@@ -44,7 +44,7 @@ describe("连接mysql数据库", function() {
   it("获取数据库实例", done => {
     mysql = new MysqlDao({
       user: "root",
-      password: "root",
+      password: "",
       database: 'test'
     })
     mysql.connect().then(() => {
@@ -98,28 +98,28 @@ describe("数据库更新", function() {
 
 describe("数据库查询", () => {
   it("查询一条数据", done => {
-    mysql.select(User, {$where:{uid: '123456789'}}).then(res => {
+    mysql.findAll(User, {$where:{uid: '123456789'}}).then(res => {
       assert(res.length > 0)
       done()
     }).catch(err => done())
   })
 
   it("order by查询&模糊查询", done => {
-    mysql.select(User, {$where:{uid: 'like 123%'}, $orderby: {column:'uid', $op:'asc'}}, ['uid', 'age']).then(res => {
+    mysql.findAll(User, {$where:{uid: 'like 123%'}, $orderby: {column:'uid', op:'asc'}}, ['uid', 'age']).then(res => {
       assert(res.length > 0)
       done()
     })
   })
 
   it("limit查询&没有where", done => {
-    mysql.select(User, {$limit:{limit:10}}).then(res => {
+    mysql.findAll(User, {$limit:{limit:10}}).then(res => {
       assert(res.length > 0)
       done()
     })
   })
-  it("getEntity", done => {
-    mysql.getEntity(User, {uid: 123456789}).then(res => {
-      assert.strictEqual(res.uid, '123456789')
+  it("find", done => {
+    mysql.find(User, {uid: 123456789}).then(res => {
+      assert.strictEqual(res.uid, 123456789)
       done()
     })
   })

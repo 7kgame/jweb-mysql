@@ -131,8 +131,6 @@ class MysqlDao {
             return this.update(entity, utils_1.default.makeWhereByPK(entity, id));
         });
     }
-    // findById
-    // updateById
     count(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
             if (where) {
@@ -172,16 +170,6 @@ class MysqlDao {
                     resolve(results);
                 });
             });
-        });
-    }
-    select(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone);
-        });
-    }
-    getEntity(entity, where, columns, withoutEscapeKey, doEntityClone) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone);
         });
     }
 }

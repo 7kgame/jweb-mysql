@@ -122,9 +122,6 @@ export default class MysqlDao {
     return this.update(entity, Utils.makeWhereByPK(entity, id))
   }
 
-  // findById
-  // updateById
-
   public async count (entity: Function, where?: SelectOptions | object): Promise<number> {
     if (where) {
       delete where['$limit']
@@ -162,11 +159,4 @@ export default class MysqlDao {
     })
   }
 
-  public async select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
-    return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone)
-  }
-
-  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
-    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
-  }
 }

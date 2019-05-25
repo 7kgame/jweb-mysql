@@ -78,7 +78,7 @@ describe("测试工具类", () => {
     template = Utils.generateSelectSql(tbName, null, ['District', 'Population'])
     assert.strictEqual(template, "SELECT `District`, `Population` FROM `city`;")
 
-    template = Utils.generateSelectSql(tbName, {$where:{Name: "like Chang", CountryCode: "CHN", $op:'and'}, $orderby: {column:'Name', $op: 'asc'}, $limit:{start:10, limit: 10}}, ['CountryCode'])
+    template = Utils.generateSelectSql(tbName, {$where:{Name: "like Chang", CountryCode: "CHN", $op:'and'}, $orderby: {column:'Name', op: 'asc'}, $limit:{start:10, limit: 10}}, ['CountryCode'])
     assert.strictEqual(template, "SELECT `CountryCode` FROM `city` WHERE `Name` like 'Chang' AND `CountryCode` = 'CHN' ORDER BY `Name` ASC LIMIT 10, 10;")
   })
   it("简单select查询", () => {
