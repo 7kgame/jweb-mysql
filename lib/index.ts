@@ -64,13 +64,13 @@ export default class MysqlDao {
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
-    let sql = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
+    let sql = Utils.generateUpdateSql(getTableNameBy(entity, where), valueset, where)
     const ret = await this.query(sql)
     return ret.affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
-    let sql = Utils.generateDeleteSql(getTableNameBy(entity), where)
+    let sql = Utils.generateDeleteSql(getTableNameBy(entity, where), where)
     const ret = await this.query(sql)
     return ret.affectedRows
   }
@@ -86,7 +86,7 @@ export default class MysqlDao {
         $limit: {limit: 1}
       }
     }
-    let sql = Utils.generateSelectSql(getTableNameBy(entity), where, columns, withoutEscapeKey)
+    let sql = Utils.generateSelectSql(getTableNameBy(entity, where), where, columns, withoutEscapeKey)
     const data = await this.query(sql)
     if (!data || data.length < 1) {
       return oneLimit ? null : []

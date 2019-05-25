@@ -11,7 +11,7 @@ interface SelectOptions {
 
 export { SelectOptions }
 
-export const getTableNameBy = function (entity: any): string {
+export const getTableNameBy = function (entity: any, where?: SelectOptions | object): string {
   if (typeof entity === 'object') {
     entity = entity.constructor
   }
