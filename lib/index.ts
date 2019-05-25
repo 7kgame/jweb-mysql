@@ -136,7 +136,6 @@ export default class MysqlDao {
 
   private async _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, doEntityClone: boolean) {
     let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
-    console.log(sql, '|||||||||||||')
     const data = await this.query(sql)
     if (!data || data.length < 1) {
       return oneLimit ? null : []

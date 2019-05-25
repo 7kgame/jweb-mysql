@@ -143,7 +143,6 @@ class MysqlDao {
     _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
             let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock);
-            console.log(sql, '|||||||||||||');
             const data = yield this.query(sql);
             if (!data || data.length < 1) {
                 return oneLimit ? null : [];
