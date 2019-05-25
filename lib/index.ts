@@ -17,7 +17,9 @@ const defaultOptions = {
   user: '',
   password: '',
   database: '',
-  connectionLimit: require("os").cpus().length
+  connectionLimit: require("os").cpus().length,
+  connectTimeout: 10000,
+  charset: 'UTF8_GENERAL_CI'
 }
 
 export default class MysqlDao {
