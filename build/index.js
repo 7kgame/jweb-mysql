@@ -121,40 +121,40 @@ class MysqlDao {
             return oneLimit ? ret[0] : ret;
         });
     }
-    select(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone) {
+    findById(entity, id, columns, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone);
+            return this.find(entity, utils_1.default.makeWhereByPK(entity, id), columns, false, doEntityClone);
         });
     }
-    getEntity(entity, where, columns, withoutEscapeKey, doEntityClone) {
+    updateById(entity, id) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone);
+            return this.update(entity, utils_1.default.makeWhereByPK(entity, id));
         });
     }
     // findById
-    // count
-    // fetch
-    // fetchAll
     // updateById
-    /**
-     * Pageable {
-        getPageNumber
-        getPageSize
-        getOffset
-        getSort
-        data
-      }
-     */
+    count(entity, where) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (where) {
+                delete where['$limit'];
+                delete where['$orderBy'];
+            }
+            const data = yield this.findAll(entity, where, ['count(*) as count'], true);
+            return (data && data[0].count) ? data[0].count : 0;
+        });
+    }
     selectBy(sql, where, oneLimit) {
         return __awaiter(this, void 0, void 0, function* () {
             sql += utils_1.default.generateWhereSql(where);
             return this.query(sql, null, oneLimit);
         });
     }
-    count(entity, where) {
+    searchByPage(entity, where, columns, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            const data = yield this.find(entity, where, ['count(*) as count'], true);
-            return (data && data.count) ? data.count : 0;
+            const ret = { total: 0, list: null };
+            ret.list = yield this.findAll(entity, where, columns, false, false, doEntityClone);
+            ret.total = yield this.count(entity, where);
+            return ret;
         });
     }
     query(sql, valueset, oneLimit) {
@@ -172,6 +172,16 @@ class MysqlDao {
                     resolve(results);
                 });
             });
+        });
+    }
+    select(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone);
+        });
+    }
+    getEntity(entity, where, columns, withoutEscapeKey, doEntityClone) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone);
         });
     }
 }

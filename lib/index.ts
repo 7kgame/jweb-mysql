@@ -8,6 +8,8 @@ const printSql = function (sql: string): void {
   console.log(sql)
 }
 
+type Page = {total: number, list: any[]}
+
 const defaultOptions = {
   host: '127.0.0.1',
   port: 3306,
@@ -112,37 +114,36 @@ export default class MysqlDao {
     return oneLimit ? ret[0] : ret
   }
 
-  public async select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
-    return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone)
+  public async findById (entity: Function, id: any, columns?: string[], doEntityClone?: boolean) {
+    return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, doEntityClone)
   }
 
-  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
-    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
+  public async updateById (entity: object, id: any) {
+    return this.update(entity, Utils.makeWhereByPK(entity, id))
   }
 
   // findById
-  // count
-  // fetch
-  // fetchAll
   // updateById
-  /**
-   * Pageable {
-      getPageNumber
-      getPageSize
-      getOffset
-      getSort
-      data
+
+  public async count (entity: Function, where?: SelectOptions | object): Promise<number> {
+    if (where) {
+      delete where['$limit']
+      delete where['$orderBy']
     }
-   */
+    const data = await this.findAll(entity, where, ['count(*) as count'], true)
+    return (data && data[0].count) ? data[0].count : 0
+  }
 
   public async selectBy (sql: string, where?: SelectOptions | object, oneLimit?: boolean) {
     sql += Utils.generateWhereSql(where)
     return this.query(sql, null, oneLimit)
   }
 
-  public async count (entity: Function, where?: SelectOptions | object): Promise<number> {
-    const data = await this.find(entity, where, ['count(*) as count'], true)
-    return (data && data.count) ? data.count : 0
+  public async searchByPage (entity: Function, where: SelectOptions | object, columns?: string[], doEntityClone?: boolean): Promise<Page> {
+    const ret: Page = {total: 0, list: null}
+    ret.list = await this.findAll(entity, where, columns, false, false, doEntityClone)
+    ret.total = await this.count(entity, where)
+    return ret
   }
 
   public async query (sql: string, valueset?: any, oneLimit?: boolean): Promise<any> {
@@ -159,5 +160,13 @@ export default class MysqlDao {
         resolve(results)
       })
     })
+  }
+
+  public async select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone)
+  }
+
+  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
   }
 }

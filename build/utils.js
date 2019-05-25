@@ -77,6 +77,22 @@ class Utils {
         template += ` FROM ${mysql_1.escapeId(tbName)}`;
         return template + this.generateWhereSql(options);
     }
+    static makeWhereByPK(entity, id) {
+        let ctor;
+        if (typeof entity === 'object') {
+            ctor = entity.constructor;
+        }
+        else {
+            ctor = entity;
+        }
+        const meta = jbean_1.BeanFactory.getBeanMeta(ctor);
+        if (!meta || !meta.id) {
+            throw new Error('primary key is not exist in ' + ctor.name);
+        }
+        const where = {};
+        where[meta.id] = id;
+        return where;
+    }
 }
 Utils.methods = {
     templateAppendWhere(template, $where) {
@@ -88,6 +104,9 @@ Utils.methods = {
         const whereLen = $where.length;
         for (let it = 0; it < whereLen; it++) {
             const $whereI = $where[it];
+            if (typeof $whereI !== 'object') {
+                continue;
+            }
             let op = ' AND ';
             if ($whereI['$op']) {
                 op = ' ' + $whereI['$op'].toUpperCase() + ' ';
@@ -111,7 +130,9 @@ Utils.methods = {
                 }
                 conds.push(`${mysql_1.escapeId(key)} ${compareSymbol} ${mysql_1.escape(val)}`);
             }
-            sql.push(conds.join(op));
+            if (conds.length > 0) {
+                sql.push(conds.join(op));
+            }
         }
         if (sql.length < 1) {
             return '';
@@ -126,14 +147,14 @@ Utils.methods = {
     templateAppendLimit(template, { limit, start }) {
         template += " LIMIT ";
         if (start) {
-            template += mysql_1.escape(start) + ",";
+            template += mysql_1.escape(start) + ", ";
         }
         template += mysql_1.escape(limit);
         return template;
     },
-    templateAppendOrderBy(template, { column, $op }) {
+    templateAppendOrderBy(template, { column, op }) {
         template += ' ORDER BY ';
-        template += `${mysql_1.escapeId(column)} ${$op.toUpperCase()}`;
+        template += `${mysql_1.escapeId(column)} ${op.toUpperCase()}`;
         return template;
     }
 };

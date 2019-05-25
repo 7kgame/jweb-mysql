@@ -1,11 +1,11 @@
 import { escape, escapeId } from "mysql"
-import { getObjectType } from 'jbean'
+import { getObjectType, BeanFactory, BeanMeta } from 'jbean'
 
 type WHERE = { $op?: string, [name: string]: any }
 
 interface SelectOptions {
   $where?: WHERE | WHERE[],
-  $orderby?: { column: string, $op: string },
+  $orderby?: { column: string, op: string },
   $limit?: { limit: number, start?: number }
 }
 
@@ -33,6 +33,9 @@ export default class Utils {
       const whereLen = $where.length
       for (let it = 0; it < whereLen; it++) {
         const $whereI = $where[it]
+        if (typeof $whereI !== 'object') {
+          continue
+        }
         let op = ' AND '
         if ($whereI['$op']) {
           op = ' ' + $whereI['$op'].toUpperCase() + ' '
@@ -56,7 +59,9 @@ export default class Utils {
           }
           conds.push(`${escapeId(key)} ${compareSymbol} ${escape(val)}`)
         }
-        sql.push(conds.join(op))
+        if (conds.length > 0) {
+          sql.push(conds.join(op))
+        }
       }
       if (sql.length < 1) {
         return ''
@@ -70,15 +75,15 @@ export default class Utils {
     templateAppendLimit(template: string, { limit, start }: {limit:number, start?:number}): string {
       template += " LIMIT "
       if (start) {
-        template += escape(start) + ","
+        template += escape(start) + ", "
       }
       template += escape(limit)
       return template
     },
 
-    templateAppendOrderBy(template: string, { column, $op }) {
+    templateAppendOrderBy(template: string, { column, op }) {
       template += ' ORDER BY '
-      template += `${escapeId(column)} ${$op.toUpperCase()}`
+      template += `${escapeId(column)} ${op.toUpperCase()}`
       return template
     }
   }
@@ -149,6 +154,22 @@ export default class Utils {
 
     template += ` FROM ${escapeId(tbName)}`
     return template + this.generateWhereSql(options)
+  }
+
+  static makeWhereByPK (entity: Function | object, id: any) {
+    let ctor: Function
+    if (typeof entity === 'object') {
+      ctor = entity.constructor
+    } else {
+      ctor = entity
+    }
+    const meta = BeanFactory.getBeanMeta(ctor)
+    if (!meta || !meta.id) {
+      throw new Error('primary key is not exist in ' + ctor.name)
+    }
+    const where = {}
+    where[meta.id] = id
+    return where
   }
 
 }
