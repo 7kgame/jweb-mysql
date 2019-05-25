@@ -2,19 +2,46 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mysql_1 = require("mysql");
 const jbean_1 = require("jbean");
-exports.getTableNameBy = function (entity) {
+exports.getTableNameBy = function (entity, where, supportMulti) {
     if (typeof entity === 'object') {
         entity = entity.constructor;
     }
-    if (entity['$tableName']) {
-        return entity['$tableName'];
+    if (typeof entity['getTableNames'] === 'function') {
+        let conditions = {};
+        if (where && where['$where']) {
+            jbean_1.merge(conditions, where['$where']);
+        }
+        else if (where) {
+            jbean_1.merge(conditions, where);
+            delete conditions['$orderBy'];
+            delete conditions['$limit'];
+        }
+        const keys = Object.keys(conditions);
+        const keyLen = keys.length;
+        for (let i = 0; i < keyLen; i++) {
+            let val = conditions[keys[i]];
+            let compareSymbol = '=';
+            if (typeof val === 'string') {
+                const valInfo = val.split(' ');
+                if (valInfo.length > 1) {
+                    val = valInfo.slice(1).join(' ');
+                    compareSymbol = valInfo[0];
+                }
+            }
+            conditions[keys[i]] = [val, compareSymbol];
+        }
+        const tblNames = entity['getTableNames'](conditions, !!supportMulti, entity);
+        if (tblNames && tblNames.length > 0) {
+            return tblNames;
+        }
     }
-    else {
+    if (!entity['$tableName']) {
         throw new Error('tableName is not found in ' + entity);
     }
+    return entity['$tableName'];
 };
 class Utils {
-    static generateWhereSql(options) {
+    static generateWhereSql(options, withLock) {
         let template = '';
         let hasSpecifiedOptionName = false;
         if (options && options['$where']) {
@@ -34,6 +61,9 @@ class Utils {
         if (options && !hasSpecifiedOptionName) {
             options['$op'] = 'and';
             template = Utils.methods.templateAppendWhere(template, options);
+        }
+        if (withLock) {
+            template += ' FOR UPDATE';
         }
         template += ';';
         return template;
@@ -62,7 +92,7 @@ class Utils {
         let template = `DELETE FROM ${mysql_1.escapeId(tbName)}`;
         return template + this.generateWhereSql($where);
     }
-    static generateSelectSql(tbName, options, columns, withoutEscapeKey) {
+    static generateSelectSql(tbName, options, columns, withoutEscapeKey, withLock) {
         let template = `SELECT `;
         if (columns) {
             for (let item of columns) {
@@ -75,7 +105,7 @@ class Utils {
             template += '*';
         }
         template += ` FROM ${mysql_1.escapeId(tbName)}`;
-        return template + this.generateWhereSql(options);
+        return template + this.generateWhereSql(options, withLock);
     }
     static makeWhereByPK(entity, id) {
         let ctor;
@@ -154,6 +184,9 @@ Utils.methods = {
     },
     templateAppendOrderBy(template, { column, op }) {
         template += ' ORDER BY ';
+        if (!op) {
+            op = 'asc';
+        }
         template += `${mysql_1.escapeId(column)} ${op.toUpperCase()}`;
         return template;
     }

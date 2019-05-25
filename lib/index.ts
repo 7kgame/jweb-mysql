@@ -1,5 +1,6 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
 import Utils, {getTableNameBy, SelectOptions} from './utils'
+import { getObjectType, merge } from 'jbean'
 
 const printSql = function (sql: string): void {
   if (process.env.NODE_ENV !== 'development') {
@@ -57,46 +58,94 @@ export default class MysqlDao {
 
   public async insert(entity: object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
-    let sql = Utils.generateInsertSql(getTableNameBy(entity), valueset)
+    const tableNames: any = getTableNameBy(entity)
+    if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
+      throw new Error('multi table name exist in insert case: ' + tableNames)
+    }
+    let sql = Utils.generateInsertSql(tableNames, valueset)
     const ret = await this.query(sql)
     return ret.insertId
   }
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
-    let sql = Utils.generateUpdateSql(getTableNameBy(entity, where), valueset, where)
+    const tableNames: any = getTableNameBy(entity, where)
+    if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
+      throw new Error('multi table name exist in update case: ' + tableNames)
+    }
+    let sql = Utils.generateUpdateSql(tableNames, valueset, where)
     const ret = await this.query(sql)
     return ret.affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
-    let sql = Utils.generateDeleteSql(getTableNameBy(entity, where), where)
+    const tableNames: any = getTableNameBy(entity, where)
+    if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
+      throw new Error('multi table name exist in delete case: ' + tableNames)
+    }
+    let sql = Utils.generateDeleteSql(tableNames, where)
     const ret = await this.query(sql)
     return ret.affectedRows
   }
 
-  public async find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
-    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
+  public async find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, doEntityClone)
   }
 
-  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
-    if (oneLimit && where && typeof where['where'] === 'undefined') {
+  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean, doEntityClone?: boolean, tableNames?: any) {
+    if (oneLimit && where
+        && where['$where'] === 'undefined'
+        && where['$limit'] === 'undefined'
+        && where['$orderBy'] === 'undefined') {
       where = {
         $where: {$op: 'and', ...where},
         $limit: {limit: 1}
       }
     }
-    let sql = Utils.generateSelectSql(getTableNameBy(entity, where), where, columns, withoutEscapeKey)
+    if (oneLimit && where && where['$limit']) {
+      where['$limit'].limit = 1
+    }
+    if (!tableNames) {
+      tableNames = getTableNameBy(entity, where, !oneLimit)
+    }
+    let tableNamesLen = 0
+    if (getObjectType(tableNames) === 'array') {
+      tableNamesLen = tableNames.length
+    } else {
+      tableNames = [tableNames]
+      tableNamesLen = 1
+    }
+    if (oneLimit && tableNamesLen > 1) {
+      throw new Error('multi table name exist in findOne case: ' + tableNames)
+    }
+
+    doEntityClone = doEntityClone && typeof entity['clone'] === 'function'
+
+    let ret: any[] = []
+    for (let i = 0; i < tableNamesLen; i++) {
+      let where0: any = {}
+      merge(where0, where)
+      let ret0 = await this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone)
+      if (oneLimit && ret0.length > 0) {
+        return ret0[0]
+      }
+      ret = ret.concat(ret0)
+    }
+    return ret
+  }
+
+  private async _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, doEntityClone: boolean) {
+    let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
+    console.log(sql, '|||||||||||||')
     const data = await this.query(sql)
     if (!data || data.length < 1) {
       return oneLimit ? null : []
     }
+
     const ret: any[] = []
     const dataLen = data.length
     const keys = Object.getOwnPropertyNames(data[0])
     const keyLen = keys.length
-    doEntityClone = doEntityClone && typeof entity['clone'] === 'function'
-
     for (let i = 0; i < dataLen; i++) {
       if (i > 0 && oneLimit) {
         break
@@ -111,35 +160,72 @@ export default class MysqlDao {
         ret.push(item)
       }
     }
-    return oneLimit ? ret[0] : ret
+    return ret
   }
 
-  public async findById (entity: Function, id: any, columns?: string[], doEntityClone?: boolean) {
-    return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, doEntityClone)
+  public async findById (entity: Function, id: any, columns?: string[], withLock?: boolean, doEntityClone?: boolean) {
+    return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, withLock, doEntityClone)
   }
 
   public async updateById (entity: object, id: any) {
     return this.update(entity, Utils.makeWhereByPK(entity, id))
   }
 
-  public async count (entity: Function, where?: SelectOptions | object): Promise<number> {
-    if (where) {
-      delete where['$limit']
-      delete where['$orderBy']
-    }
-    const data = await this.findAll(entity, where, ['count(*) as count'], true)
-    return (data && data[0].count) ? data[0].count : 0
+  public async deleteById (entity: Function, id: any) {
+    return this.delete(entity, Utils.makeWhereByPK(entity, id))
   }
 
-  public async selectBy (sql: string, where?: SelectOptions | object, oneLimit?: boolean) {
-    sql += Utils.generateWhereSql(where)
+  public async count (entity: Function, where?: SelectOptions | object, tableNames?: any): Promise<number> {
+    let where0: any = {}
+    merge(where0, where)
+    delete where0['$limit']
+    delete where0['$orderBy']
+    const data = await this.findAll(entity, where0, ['count(*) as count'], true, false, false, false, tableNames)
+    const dataLen = data.length
+    let count = 0
+    for (let i = 0; i < dataLen; i++) {
+      count += data[i].count
+    }
+    return count
+  }
+
+  public async selectBy (sql: string, where?: SelectOptions | object, withLock?: boolean, oneLimit?: boolean) {
+    sql += Utils.generateWhereSql(where, withLock)
     return this.query(sql, null, oneLimit)
   }
 
-  public async searchByPage (entity: Function, where: SelectOptions | object, columns?: string[], doEntityClone?: boolean): Promise<Page> {
+  public async searchByPage (entity: Function, where: SelectOptions, columns?: string[], doEntityClone?: boolean): Promise<Page> {
+    if (!where.$limit || !where.$limit.limit) {
+      throw new Error('limit condition is missing in searchByPage')
+    }
     const ret: Page = {total: 0, list: null}
-    ret.list = await this.findAll(entity, where, columns, false, false, doEntityClone)
-    ret.total = await this.count(entity, where)
+    const limit = where.$limit.limit
+    const start = where.$limit.start || 0
+    where.$limit.start = start
+
+    let tableNames = getTableNameBy(entity, where, true)
+    tableNames = [].concat(tableNames)
+    const tblLen = tableNames.length
+    let data: any[] = []
+    let count = 0
+    for (let i = 0; i < tblLen; i++) {
+      if (data.length < limit && where.$limit.limit > 0) {
+        let d0 = await this.findAll(entity, where, columns, false, false, false, doEntityClone, tableNames[i])
+        data = data.concat(d0)
+      }
+      let c0 = await this.count(entity, where, tableNames[i])
+      count += c0
+      where.$limit.limit = limit - data.length
+      where.$limit.start = start - count
+      if (where.$limit.start < 0) {
+        where.$limit.start = 0
+      }
+    }
+    ret.list = data
+    ret.total = count
+    if (limit > 0 && ret.list.length > limit) {
+      ret.list = ret.list.slice(0, limit)
+    }
     return ret
   }
 

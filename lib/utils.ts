@@ -1,25 +1,55 @@
 import { escape, escapeId } from "mysql"
-import { getObjectType, BeanFactory, BeanMeta } from 'jbean'
+import { getObjectType, BeanFactory, BeanMeta, merge } from 'jbean'
 
 type WHERE = { $op?: string, [name: string]: any }
 
 interface SelectOptions {
   $where?: WHERE | WHERE[],
-  $orderby?: { column: string, op: string },
+  $orderby?: { column: string, op?: string },
   $limit?: { limit: number, start?: number }
 }
 
 export { SelectOptions }
 
-export const getTableNameBy = function (entity: any, where?: SelectOptions | object): string {
+export const getTableNameBy = function (entity: any, where?: SelectOptions | object, supportMulti?: boolean): string | string[] {
   if (typeof entity === 'object') {
     entity = entity.constructor
   }
-  if (entity['$tableName']) {
-    return entity['$tableName']
-  } else {
+
+  if (typeof entity['getTableNames'] === 'function') {
+    let conditions = {}
+    if (where && where['$where']) {
+      merge(conditions, where['$where'])
+    } else if (where) {
+      merge(conditions, where)
+      delete conditions['$orderBy']
+      delete conditions['$limit']
+    }
+    const keys = Object.keys(conditions)
+    const keyLen = keys.length
+    for (let i = 0; i < keyLen; i++) {
+      let val = conditions[keys[i]]
+      let compareSymbol = '='
+      if (typeof val === 'string') {
+        const valInfo = val.split(' ')
+        if (valInfo.length > 1) {
+          val = valInfo.slice(1).join(' ')
+          compareSymbol = valInfo[0]
+        }
+      }
+      conditions[keys[i]] = [val, compareSymbol]
+    }
+
+    const tblNames = entity['getTableNames'](conditions, !!supportMulti, entity)
+    if (tblNames && tblNames.length > 0) {
+      return tblNames
+    }
+  }
+
+  if (!entity['$tableName']) {
     throw new Error('tableName is not found in ' + entity)
   }
+  return entity['$tableName']
 }
 
 export default class Utils {
@@ -83,12 +113,15 @@ export default class Utils {
 
     templateAppendOrderBy(template: string, { column, op }) {
       template += ' ORDER BY '
+      if (!op) {
+        op = 'asc'
+      }
       template += `${escapeId(column)} ${op.toUpperCase()}`
       return template
     }
   }
 
-  static generateWhereSql (options?: SelectOptions | object): string {
+  static generateWhereSql (options?: SelectOptions | object, withLock?: boolean): string {
     let template: string = ''
     let hasSpecifiedOptionName = false
     if (options && options['$where']) {
@@ -108,6 +141,9 @@ export default class Utils {
     if (options && !hasSpecifiedOptionName) {
       options['$op'] = 'and'
       template = Utils.methods.templateAppendWhere(template, options)
+    }
+    if (withLock) {
+      template += ' FOR UPDATE'
     }
     template += ';'
     return template
@@ -140,7 +176,7 @@ export default class Utils {
     return template + this.generateWhereSql($where)
   }
 
-  static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean): string {
+  static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean): string {
     let template = `SELECT `
     if (columns) {
       for (let item of columns) {
@@ -153,7 +189,7 @@ export default class Utils {
     }
 
     template += ` FROM ${escapeId(tbName)}`
-    return template + this.generateWhereSql(options)
+    return template + this.generateWhereSql(options, withLock)
   }
 
   static makeWhereByPK (entity: Function | object, id: any) {
@@ -163,7 +199,7 @@ export default class Utils {
     } else {
       ctor = entity
     }
-    const meta = BeanFactory.getBeanMeta(ctor)
+    const meta: BeanMeta = BeanFactory.getBeanMeta(ctor)
     if (!meta || !meta.id) {
       throw new Error('primary key is not exist in ' + ctor.name)
     }
