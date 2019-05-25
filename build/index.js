@@ -80,28 +80,31 @@ class MysqlDao {
             return ret.affectedRows;
         });
     }
-    select(entity, where, columns) {
+    fetch(entity, where, columns) {
         return __awaiter(this, void 0, void 0, function* () {
-            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
-            const data = yield this.query(template);
-            if (!data) {
-                return [];
-            }
-            const ret = [];
-            data.forEach(item => {
-                if (typeof entity['clone'] === 'function') {
-                    ret.push(entity['clone'](item));
-                }
-                else {
-                    ret.push(JSON.parse(JSON.stringify(item)));
-                }
-            });
-            return ret;
+            return this.fetchAll(entity, where, columns, true);
+            // if (typeof where['where'] === 'undefined') {
+            //   where = {
+            //     $where: {$op: 'and', ...where},
+            //     $limit: {limit: 1}
+            //   }
+            // }
+            // const data = await this.fetchAll(entity, where, columns)
+            // // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
+            // // const data = await this.query(template)
+            // if (!data || data.length < 1) {
+            //   return null
+            // }
+            // if (typeof entity['clone'] === 'function') {
+            //   return entity['clone'](data[0])
+            // } else {
+            //   return JSON.parse(JSON.stringify(data[0]))
+            // }
         });
     }
-    getEntity(entity, where, columns) {
+    fetchAll(entity, where, columns, oneLimit) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (typeof where['where'] === 'undefined') {
+            if (oneLimit && typeof where['where'] === 'undefined') {
                 where = {
                     $where: Object.assign({ $op: 'and' }, where),
                     $limit: { limit: 1 }
@@ -109,17 +112,86 @@ class MysqlDao {
             }
             let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
             const data = yield this.query(template);
-            if (!data || data.length < 1) {
-                return null;
+            if (!data) {
+                return oneLimit ? null : [];
             }
-            if (typeof entity['clone'] === 'function') {
-                return entity['clone'](data[0]);
+            const ret = [];
+            const len = data.length;
+            for (let i = 0; i < len; i++) {
+                if (i > 0 && oneLimit) {
+                    break;
+                }
+                if (typeof entity['format'] === 'function') {
+                    ret.push(entity['format'](data[i]));
+                }
+                else {
+                    ret.push(JSON.parse(JSON.stringify(data[i])));
+                }
             }
-            else {
-                return JSON.parse(JSON.stringify(data[0]));
-            }
+            // data.forEach(item => {
+            //   if (typeof entity['clone'] === 'function') {
+            //     ret.push(entity['clone'](item))
+            //   } else {
+            //     ret.push(JSON.parse(JSON.stringify(item)))
+            //   }
+            // })
+            return oneLimit ? ret[0] : ret;
         });
     }
+    select(entity, where, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
+            // const data = await this.query(template)
+            // if (!data) {
+            //   return []
+            // }
+            // const ret: any[] = []
+            // data.forEach(item => {
+            //   if (typeof entity['clone'] === 'function') {
+            //     ret.push(entity['clone'](item))
+            //   } else {
+            //     ret.push(JSON.parse(JSON.stringify(item)))
+            //   }
+            // })
+            // return ret
+            return this.fetchAll(entity, where, columns);
+        });
+    }
+    getEntity(entity, where, columns) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // if (typeof where['where'] === 'undefined') {
+            //   where = {
+            //     $where: {$op: 'and', ...where},
+            //     $limit: {limit: 1}
+            //   }
+            // }
+            // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
+            // const data = await this.query(template)
+            // if (!data || data.length < 1) {
+            //   return null
+            // }
+            // if (typeof entity['clone'] === 'function') {
+            //   return entity['clone'](data[0])
+            // } else {
+            //   return JSON.parse(JSON.stringify(data[0]))
+            // }
+            return this.fetchAll(entity, where, columns, true);
+        });
+    }
+    // findById
+    // count
+    // fetch
+    // fetchAll
+    // updateById
+    /**
+     * Pageable {
+        getPageNumber
+        getPageSize
+        getOffset
+        getSort
+        data
+      }
+     */
     query(sql, valueset) {
         return __awaiter(this, void 0, void 0, function* () {
             printSql(sql);

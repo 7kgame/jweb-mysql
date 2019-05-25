@@ -42,7 +42,7 @@ describe("测试工具类", () => {
     )
     assert.strictEqual(
       template,
-      "INSERT INTO `city`(`Name`,`CountryCode`,`District`,`Population`) VALUES('ChangSha','CHN','South','10000000');"
+      "INSERT INTO `city`(`Name`, `CountryCode`, `District`, `Population`) VALUES ('ChangSha', 'CHN', 'South', '10000000');"
     )
   })
 
@@ -50,42 +50,42 @@ describe("测试工具类", () => {
     let template = Utils.generateUpdateSql(tbName, valueset, where)
 
     assert.strictEqual(template,
-      "UPDATE `city` SET `District`='Middle' WHERE `Name`='ChangSha';")
+      "UPDATE `city` SET `District` = 'Middle' WHERE `Name` = 'ChangSha';")
 
     template = Utils.generateUpdateSql(tbName, valueset)
     assert.strictEqual(template,
-      "UPDATE `city` SET `District`='Middle';")
+      "UPDATE `city` SET `District` = 'Middle';")
 
-    template = Utils.generateUpdateSql(tbName, valueset, {Name: "like Chang"})
-    assert.strictEqual(template, "UPDATE `city` SET `District`='Middle' WHERE `Name` LIKE 'Chang';")
+    template = Utils.generateUpdateSql(tbName, valueset, {Name: "!= Chang"})
+    assert.strictEqual(template, "UPDATE `city` SET `District` = 'Middle' WHERE `Name` != 'Chang';")
   })
 
   it("DELETE转义后的sql语句", () => {
     let template = Utils.generateDeleteSql(tbName, where)
-    assert.strictEqual(template, "DELETE FROM `city` WHERE `Name`='ChangSha';")
+    assert.strictEqual(template, "DELETE FROM `city` WHERE `Name` = 'ChangSha';")
 
     template = Utils.generateDeleteSql(tbName)
     assert.strictEqual(template, "DELETE FROM `city`;")
 
     template = Utils.generateDeleteSql(tbName, {Name: "like Chang"})
-    assert.strictEqual(template, "DELETE FROM `city` WHERE `Name` LIKE 'Chang';")
+    assert.strictEqual(template, "DELETE FROM `city` WHERE `Name` like 'Chang';")
   })
 
   it("SELECT转义后的sql语句", () => {
-    let template = Utils.generateSelectSql(tbName, {$where: {Name:'ChangSha'}}, ['Name'])
-    assert.strictEqual(template, "SELECT `Name` FROM `city` WHERE `Name`='ChangSha';")
+    let template = Utils.generateSelectSql(tbName, {$where: [{Name: 'ChangSha1'}, {Age: '1', Time: '123', $op: 'or'}]}, ['Name'])
+    assert.strictEqual(template, "SELECT `Name` FROM `city` WHERE (`Name` = 'ChangSha1') AND (`Age` = '1' OR `Time` = '123');")
 
     template = Utils.generateSelectSql(tbName, null, ['District', 'Population'])
-    assert.strictEqual(template, "SELECT `District`,`Population` FROM `city`;")
+    assert.strictEqual(template, "SELECT `District`, `Population` FROM `city`;")
 
     template = Utils.generateSelectSql(tbName, {$where:{Name: "like Chang", CountryCode: "CHN", $op:'and'}, $orderby: {column:'Name', $op: 'asc'}, $limit:{start:10, limit: 10}}, ['CountryCode'])
-    assert.strictEqual(template, "SELECT `CountryCode` FROM `city` WHERE `Name` LIKE 'Chang' AND `CountryCode`='CHN' ORDER BY `Name` ASC LIMIT 10,10;")
+    assert.strictEqual(template, "SELECT `CountryCode` FROM `city` WHERE `Name` like 'Chang' AND `CountryCode` = 'CHN' ORDER BY `Name` ASC LIMIT 10,10;")
   })
   it("简单select查询", () => {
     let template = Utils.generateSelectSql(tbName, {uid: '123'})
-    assert.strictEqual(template, "SELECT `*` FROM `city` WHERE `uid`='123';")
+    assert.strictEqual(template, "SELECT * FROM `city` WHERE `uid` = '123';")
 
     template = Utils.generateSelectSql(tbName, {name: 'bright'}, ['age', 'name'])
-    assert.strictEqual(template, "SELECT `age`,`name` FROM `city` WHERE `name`='bright';")
+    assert.strictEqual(template, "SELECT `age`, `name` FROM `city` WHERE `name` = 'bright';")
   })
 })
