@@ -60,122 +60,75 @@ class MysqlDao {
     insert(entity) {
         return __awaiter(this, void 0, void 0, function* () {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
-            let template = utils_1.default.generateInsertSql(utils_1.getTableNameBy(entity), valueset);
-            const ret = yield this.query(template);
+            let sql = utils_1.default.generateInsertSql(utils_1.getTableNameBy(entity), valueset);
+            const ret = yield this.query(sql);
             return ret.insertId;
         });
     }
     update(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
             const valueset = entity['toObject'] ? entity['toObject']() : entity;
-            let template = utils_1.default.generateUpdateSql(utils_1.getTableNameBy(entity), valueset, where);
-            const ret = yield this.query(template);
+            let sql = utils_1.default.generateUpdateSql(utils_1.getTableNameBy(entity), valueset, where);
+            const ret = yield this.query(sql);
             return ret.affectedRows;
         });
     }
     delete(entity, where) {
         return __awaiter(this, void 0, void 0, function* () {
-            let template = utils_1.default.generateDeleteSql(utils_1.getTableNameBy(entity), where);
-            const ret = yield this.query(template);
+            let sql = utils_1.default.generateDeleteSql(utils_1.getTableNameBy(entity), where);
+            const ret = yield this.query(sql);
             return ret.affectedRows;
         });
     }
-    fetch(entity, where, columns) {
+    find(entity, where, columns, withoutEscapeKey, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            return this.fetchAll(entity, where, columns, true);
-            // if (typeof where['where'] === 'undefined') {
-            //   where = {
-            //     $where: {$op: 'and', ...where},
-            //     $limit: {limit: 1}
-            //   }
-            // }
-            // const data = await this.fetchAll(entity, where, columns)
-            // // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-            // // const data = await this.query(template)
-            // if (!data || data.length < 1) {
-            //   return null
-            // }
-            // if (typeof entity['clone'] === 'function') {
-            //   return entity['clone'](data[0])
-            // } else {
-            //   return JSON.parse(JSON.stringify(data[0]))
-            // }
+            return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone);
         });
     }
-    fetchAll(entity, where, columns, oneLimit) {
+    findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (oneLimit && typeof where['where'] === 'undefined') {
+            if (oneLimit && where && typeof where['where'] === 'undefined') {
                 where = {
                     $where: Object.assign({ $op: 'and' }, where),
                     $limit: { limit: 1 }
                 };
             }
-            let template = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns);
-            const data = yield this.query(template);
-            if (!data) {
+            let sql = utils_1.default.generateSelectSql(utils_1.getTableNameBy(entity), where, columns, withoutEscapeKey);
+            const data = yield this.query(sql);
+            if (!data || data.length < 1) {
                 return oneLimit ? null : [];
             }
             const ret = [];
-            const len = data.length;
-            for (let i = 0; i < len; i++) {
+            const dataLen = data.length;
+            const keys = Object.getOwnPropertyNames(data[0]);
+            const keyLen = keys.length;
+            doEntityClone = doEntityClone && typeof entity['clone'] === 'function';
+            for (let i = 0; i < dataLen; i++) {
                 if (i > 0 && oneLimit) {
                     break;
                 }
-                if (typeof entity['format'] === 'function') {
-                    ret.push(entity['format'](data[i]));
+                if (doEntityClone) {
+                    ret.push(entity['clone'](data[i]));
                 }
                 else {
-                    ret.push(JSON.parse(JSON.stringify(data[i])));
+                    const item = {};
+                    for (let j = 0; j < keyLen; j++) {
+                        item[keys[j]] = data[i][keys[j]];
+                    }
+                    ret.push(item);
                 }
             }
-            // data.forEach(item => {
-            //   if (typeof entity['clone'] === 'function') {
-            //     ret.push(entity['clone'](item))
-            //   } else {
-            //     ret.push(JSON.parse(JSON.stringify(item)))
-            //   }
-            // })
             return oneLimit ? ret[0] : ret;
         });
     }
-    select(entity, where, columns) {
+    select(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-            // const data = await this.query(template)
-            // if (!data) {
-            //   return []
-            // }
-            // const ret: any[] = []
-            // data.forEach(item => {
-            //   if (typeof entity['clone'] === 'function') {
-            //     ret.push(entity['clone'](item))
-            //   } else {
-            //     ret.push(JSON.parse(JSON.stringify(item)))
-            //   }
-            // })
-            // return ret
-            return this.fetchAll(entity, where, columns);
+            return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone);
         });
     }
-    getEntity(entity, where, columns) {
+    getEntity(entity, where, columns, withoutEscapeKey, doEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
-            // if (typeof where['where'] === 'undefined') {
-            //   where = {
-            //     $where: {$op: 'and', ...where},
-            //     $limit: {limit: 1}
-            //   }
-            // }
-            // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-            // const data = await this.query(template)
-            // if (!data || data.length < 1) {
-            //   return null
-            // }
-            // if (typeof entity['clone'] === 'function') {
-            //   return entity['clone'](data[0])
-            // } else {
-            //   return JSON.parse(JSON.stringify(data[0]))
-            // }
-            return this.fetchAll(entity, where, columns, true);
+            return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone);
         });
     }
     // findById
@@ -192,7 +145,19 @@ class MysqlDao {
         data
       }
      */
-    query(sql, valueset) {
+    selectBy(sql, where, oneLimit) {
+        return __awaiter(this, void 0, void 0, function* () {
+            sql += utils_1.default.generateWhereSql(where);
+            return this.query(sql, null, oneLimit);
+        });
+    }
+    count(entity, where) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const data = yield this.find(entity, where, ['count(*) as count'], true);
+            return (data && data.count) ? data.count : 0;
+        });
+    }
+    query(sql, valueset, oneLimit) {
         return __awaiter(this, void 0, void 0, function* () {
             printSql(sql);
             return new Promise((resolve, reject) => {
@@ -200,6 +165,9 @@ class MysqlDao {
                     if (err) {
                         reject(err);
                         return;
+                    }
+                    if (oneLimit) {
+                        results = results ? results[0] : null;
                     }
                     resolve(results);
                 });

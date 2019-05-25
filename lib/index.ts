@@ -55,115 +55,69 @@ export default class MysqlDao {
 
   public async insert(entity: object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
-    let template = Utils.generateInsertSql(getTableNameBy(entity), valueset)
-    const ret = await this.query(template)
+    let sql = Utils.generateInsertSql(getTableNameBy(entity), valueset)
+    const ret = await this.query(sql)
     return ret.insertId
   }
 
   public async update (entity: object, where: SelectOptions | object) {
     const valueset = entity['toObject'] ? entity['toObject']() : entity
-    let template = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
-    const ret = await this.query(template)
+    let sql = Utils.generateUpdateSql(getTableNameBy(entity), valueset, where)
+    const ret = await this.query(sql)
     return ret.affectedRows
   }
 
   public async delete (entity: Function, where: SelectOptions | object) {
-    let template = Utils.generateDeleteSql(getTableNameBy(entity), where)
-    const ret = await this.query(template)
+    let sql = Utils.generateDeleteSql(getTableNameBy(entity), where)
+    const ret = await this.query(sql)
     return ret.affectedRows
   }
 
-  public async fetch (entity: Function, where: SelectOptions | object, columns?: string[]) {
-    return this.fetchAll(entity, where, columns, true)
-    // if (typeof where['where'] === 'undefined') {
-    //   where = {
-    //     $where: {$op: 'and', ...where},
-    //     $limit: {limit: 1}
-    //   }
-    // }
-    // const data = await this.fetchAll(entity, where, columns)
-    // // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-    // // const data = await this.query(template)
-    // if (!data || data.length < 1) {
-    //   return null
-    // }
-    // if (typeof entity['clone'] === 'function') {
-    //   return entity['clone'](data[0])
-    // } else {
-    //   return JSON.parse(JSON.stringify(data[0]))
-    // }
+  public async find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
   }
 
-  public async fetchAll (entity: Function, where?: SelectOptions | object, columns?: string[], oneLimit?: boolean) {
-    if (oneLimit && typeof where['where'] === 'undefined') {
+  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
+    if (oneLimit && where && typeof where['where'] === 'undefined') {
       where = {
         $where: {$op: 'and', ...where},
         $limit: {limit: 1}
       }
     }
-    let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-    const data = await this.query(template)
-    if (!data) {
+    let sql = Utils.generateSelectSql(getTableNameBy(entity), where, columns, withoutEscapeKey)
+    const data = await this.query(sql)
+    if (!data || data.length < 1) {
       return oneLimit ? null : []
     }
     const ret: any[] = []
-    const len = data.length
-    for (let i = 0; i < len; i++) {
+    const dataLen = data.length
+    const keys = Object.getOwnPropertyNames(data[0])
+    const keyLen = keys.length
+    doEntityClone = doEntityClone && typeof entity['clone'] === 'function'
+
+    for (let i = 0; i < dataLen; i++) {
       if (i > 0 && oneLimit) {
         break
       }
-      if (typeof entity['format'] === 'function') {
-        ret.push(entity['format'](data[i]))
+      if (doEntityClone) {
+        ret.push(entity['clone'](data[i]))
       } else {
-        ret.push(JSON.parse(JSON.stringify(data[i])))
+        const item = {}
+        for (let j = 0; j < keyLen; j++) {
+          item[keys[j]] = data[i][keys[j]]
+        }
+        ret.push(item)
       }
     }
-    // data.forEach(item => {
-    //   if (typeof entity['clone'] === 'function') {
-    //     ret.push(entity['clone'](item))
-    //   } else {
-    //     ret.push(JSON.parse(JSON.stringify(item)))
-    //   }
-    // })
     return oneLimit ? ret[0] : ret
   }
 
-  public async select (entity: Function, where?: SelectOptions | object, columns?: string[]) {
-    // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-    // const data = await this.query(template)
-    // if (!data) {
-    //   return []
-    // }
-    // const ret: any[] = []
-    // data.forEach(item => {
-    //   if (typeof entity['clone'] === 'function') {
-    //     ret.push(entity['clone'](item))
-    //   } else {
-    //     ret.push(JSON.parse(JSON.stringify(item)))
-    //   }
-    // })
-    // return ret
-    return this.fetchAll(entity, where, columns)
+  public async select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, oneLimit, doEntityClone)
   }
 
-  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[]) {
-    // if (typeof where['where'] === 'undefined') {
-    //   where = {
-    //     $where: {$op: 'and', ...where},
-    //     $limit: {limit: 1}
-    //   }
-    // }
-    // let template = Utils.generateSelectSql(getTableNameBy(entity), where, columns)
-    // const data = await this.query(template)
-    // if (!data || data.length < 1) {
-    //   return null
-    // }
-    // if (typeof entity['clone'] === 'function') {
-    //   return entity['clone'](data[0])
-    // } else {
-    //   return JSON.parse(JSON.stringify(data[0]))
-    // }
-    return this.fetchAll(entity, where, columns, true)
+  public async getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean) {
+    return this.findAll(entity, where, columns, withoutEscapeKey, true, doEntityClone)
   }
 
   // findById
@@ -181,13 +135,26 @@ export default class MysqlDao {
     }
    */
 
-  public async query (sql: string, valueset?: any): Promise<any> {
+  public async selectBy (sql: string, where?: SelectOptions | object, oneLimit?: boolean) {
+    sql += Utils.generateWhereSql(where)
+    return this.query(sql, null, oneLimit)
+  }
+
+  public async count (entity: Function, where?: SelectOptions | object): Promise<number> {
+    const data = await this.find(entity, where, ['count(*) as count'], true)
+    return (data && data.count) ? data.count : 0
+  }
+
+  public async query (sql: string, valueset?: any, oneLimit?: boolean): Promise<any> {
     printSql(sql)
     return new Promise((resolve, reject) => {
       this.getClient().query(sql, valueset || [], function(err, results, fields) {
         if (err) {
           reject(err)
           return
+        }
+        if (oneLimit) {
+          results = results ? results[0] : null
         }
         resolve(results)
       })

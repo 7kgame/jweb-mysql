@@ -47,10 +47,12 @@ export default class Utils {
           if (key === '$op') {
             continue
           }
-          const valInfo = val.split(' ')
-          if (valInfo.length > 1) {
-            val = valInfo.slice(1).join(' ')
-            compareSymbol = valInfo[0]
+          if (typeof val === 'string') {
+            const valInfo = val.split(' ')
+            if (valInfo.length > 1) {
+              val = valInfo.slice(1).join(' ')
+              compareSymbol = valInfo[0]
+            }
           }
           conds.push(`${escapeId(key)} ${compareSymbol} ${escape(val)}`)
         }
@@ -122,32 +124,23 @@ export default class Utils {
   static generateUpdateSql(tbName: string, valueset: object, $where?: SelectOptions | object): string {
     let template = `UPDATE ${escapeId(tbName)} SET `
     for (let  [k, v] of Object.entries(valueset)) {
-      template += `${escapeId(k)} = ${escape(v)},`
+      template += `${escapeId(k)} = ${escape(v)}, `
     }
-    template = template.slice(0, -1)
-    // if ($where) {
-    //   $where['$op'] = $where['$op'] || 'and'
-    //   template = Utils.methods.templateAppendWhere(template, $where)
-    // }
-    // template += ';'
+    template = template.slice(0, -2)
     return template + this.generateWhereSql($where)
   }
 
   static generateDeleteSql(tbName: string, $where?: SelectOptions | object): string {
     let template = `DELETE FROM ${escapeId(tbName)}`
-    // if ($where) {
-    //   $where['$op'] = $where['$op'] || 'and'
-    //   template = Utils.methods.templateAppendWhere(template, $where)
-    // }
-    // template += ';'
     return template + this.generateWhereSql($where)
   }
 
-  static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[]): string {
+  static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean): string {
     let template = `SELECT `
     if (columns) {
       for (let item of columns) {
-        template += `${escapeId(item)}, `
+        template += withoutEscapeKey ? item : `${escapeId(item)}`
+        template += ', '
       }
       template = template.slice(0, -2)
     } else {
@@ -155,26 +148,6 @@ export default class Utils {
     }
 
     template += ` FROM ${escapeId(tbName)}`
-    // let hasSpecifiedOptionName = false
-    // if (options && options['$where']) {
-    //   hasSpecifiedOptionName = true
-    //   template = Utils.methods.templateAppendWhere(template, options['$where'])
-    // }
-    // if (options && options['$orderby']) {
-    //   hasSpecifiedOptionName = true
-    //   template = Utils.methods.templateAppendOrderBy(template, options['$orderby'])
-    //   delete options['$orderby']
-    // }
-    // if (options && options['$limit']) {
-    //   hasSpecifiedOptionName = true
-    //   template = Utils.methods.templateAppendLimit(template, options['$limit'])
-    //   delete options['$limit']
-    // }
-    // if (options && !hasSpecifiedOptionName) {
-    //   options['$op'] = 'and'
-    //   template = Utils.methods.templateAppendWhere(template, options)
-    // }
-    // template += ';'
     return template + this.generateWhereSql(options)
   }
 

@@ -21,9 +21,12 @@ export default interface MysqlDao {
   insert (entity: object): Promise<any>
   delete (entity: Function, where: SelectOptions | object): Promise<number>
   update (entity: object, where: SelectOptions | object): Promise<number>
-  fetch (entity: Function, where?: SelectOptions | object, columns?: string[]): Promise<any>
-  fetchAll (entity: Function, where: SelectOptions | object, columns?: string[]): Promise<any>
-  select (entity: Function, where?: SelectOptions | object, columns?: string[]): Promise<any>
-  getEntity (entity: Function, where: SelectOptions | object, columns?: string[]): Promise<any>
-  query (sql: string, valueset?: object): Promise<any>
+  find (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean): Promise<any>
+  findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean): Promise<any>
+  selectBy (sql: string, where?: SelectOptions | object, oneLimit?: boolean): Promise<any>
+  count (entity: Function, where?: SelectOptions | object): Promise<number>
+
+  select (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, oneLimit?: boolean, doEntityClone?: boolean): Promise<any>
+  getEntity (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, doEntityClone?: boolean): Promise<any>
+  query (sql: string, valueset?: object, oneLimit?: boolean): Promise<any>
 }
