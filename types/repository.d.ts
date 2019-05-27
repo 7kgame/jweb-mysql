@@ -3,6 +3,8 @@ import { Page } from 'jbean'
 
 export default class MysqlRepository<T> {
 
+  protected entityClz: Function
+
   constructor (entity: Function)
 
   getDao(master?: boolean): MysqlDao
