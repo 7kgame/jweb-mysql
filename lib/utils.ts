@@ -1,15 +1,17 @@
 import { escape, escapeId } from "mysql"
-import { getObjectType, BeanFactory, BeanMeta, merge } from 'jbean'
+import { getObjectType, BeanFactory, BeanMeta } from 'jbean'
 
 type WHERE = { $op?: string, [name: string]: any }
+type ORDER_BY = { column: string, op?: string }
+type LIMIT = {limit: number, start?: number}
 
 interface SelectOptions {
   $where?: WHERE | WHERE[],
-  $orderby?: { column: string, op?: string },
-  $limit?: { limit: number, start?: number }
+  $orderby?: ORDER_BY,
+  $limit?: LIMIT
 }
 
-export { SelectOptions }
+export { SelectOptions, ORDER_BY, LIMIT, WHERE }
 
 export const getTableNameBy = function (entity: any, where?: SelectOptions | object, supportMulti?: boolean): string | string[] {
   if (typeof entity === 'object') {
@@ -19,15 +21,18 @@ export const getTableNameBy = function (entity: any, where?: SelectOptions | obj
   if (typeof entity['getTableNames'] === 'function') {
     let conditions = {}
     if (where && where['$where']) {
-      merge(conditions, where['$where'])
+      conditions = where['$where']
     } else if (where) {
-      merge(conditions, where)
-      delete conditions['$orderBy']
-      delete conditions['$limit']
+      conditions = where
     }
     const keys = Object.keys(conditions)
     const keyLen = keys.length
+    const conditions2 = {}
     for (let i = 0; i < keyLen; i++) {
+      const key = keys[i]
+      if (key === '$where' || key === '$orderBy' || key === '$limit') {
+        continue
+      }
       let val = conditions[keys[i]]
       let compareSymbol = '='
       if (typeof val === 'string') {
@@ -37,10 +42,10 @@ export const getTableNameBy = function (entity: any, where?: SelectOptions | obj
           compareSymbol = valInfo[0]
         }
       }
-      conditions[keys[i]] = [val, compareSymbol]
+      conditions2[key] = [val, compareSymbol]
     }
 
-    const tblNames = entity['getTableNames'](conditions, !!supportMulti, entity)
+    const tblNames = entity['getTableNames'](conditions2, !!supportMulti, entity)
     if (tblNames && tblNames.length > 0) {
       return tblNames
     }
