@@ -1,6 +1,6 @@
 {
   "name": "jweb-mysql",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "mysql dao implementation for jweb",
   "main": "build/index.js",
   "typings": "types/index.d.ts",

@@ -77,6 +77,10 @@ export default class MysqlRepository<T> {
     return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, doEntityClone)
   }
 
+  public findById (id: any, columns?: string[], withLock?: boolean, doEntityClone?: boolean): Promise<T> {
+    return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, doEntityClone)
+  }
+
   public searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<T[]> {
     if (where && typeof where['toObject'] === 'function') {
       where = where['toObject']()

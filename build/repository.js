@@ -60,6 +60,9 @@ class MysqlRepository {
         }
         return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, doEntityClone);
     }
+    findById(id, columns, withLock, doEntityClone) {
+        return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, doEntityClone);
+    }
     searchBy(sql, where, withLock, oneLimit) {
         if (where && typeof where['toObject'] === 'function') {
             where = where['toObject']();
