@@ -88,7 +88,7 @@ export default class MysqlRepository<T> {
     return this.getDao().selectBy(sql, where, withLock, oneLimit)
   }
 
-  public searchByPage (where: object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], doEntityClone?: boolean): Promise<Page> {
+  public searchByPage (where: SelectOptions | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], doEntityClone?: boolean): Promise<Page> {
     if (where && typeof where['toObject'] === 'function') {
       where = where['toObject']()
     }

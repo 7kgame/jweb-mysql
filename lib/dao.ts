@@ -158,7 +158,7 @@ export default class MysqlDao {
 
     let ret: any[] = []
     for (let i = 0; i < tableNamesLen; i++) {
-      let where0: any = {}
+      let where0: any = (getObjectType(where) === 'array') ? [] : {}
       merge(where0, where)
       let ret0 = await this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone)
       if (oneLimit && ret0 && ret0.length > 0) {
@@ -171,6 +171,7 @@ export default class MysqlDao {
 
   private _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, doEntityClone: boolean): Promise<any[] | null> {
     let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
+    console.log(sql)
     return new Promise((res, rej) => {
       this.query(sql).then(function (data) {
         if (!data || data.length < 1) {
@@ -224,7 +225,7 @@ export default class MysqlDao {
   }
 
   public count (entity: Function, where?: SelectOptions | object, tableNames?: any): Promise<number> {
-    let where0: any = {}
+    let where0: any = (getObjectType(where) === 'array') ? [] : {}
     merge(where0, where)
     delete where0['$limit']
     delete where0['$orderBy']
@@ -248,7 +249,7 @@ export default class MysqlDao {
     return this.query(sql, null, oneLimit)
   }
 
-  public async searchByPage (entity: Function, where: object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], doEntityClone?: boolean): Promise<Page> {
+  public async searchByPage (entity: Function, where: SelectOptions | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], doEntityClone?: boolean): Promise<Page> {
     const ret: Page = {total: 0, list: null}
     pageSize = pageSize - 0
     if (pageSize < 1) {
@@ -263,9 +264,9 @@ export default class MysqlDao {
     const start = (page - 1) * pageSize
 
     const searchWhere: any = {
-      $where: {}
+      $where: getObjectType(where) === 'array' ? [] : {}
     }
-    merge(searchWhere.$where, where)
+    merge(searchWhere.$where, where['$where'] || where)
     if (orderBy) {
       searchWhere.$orderBy = orderBy
     }
@@ -276,6 +277,8 @@ export default class MysqlDao {
 
     let tableNames = getTableNameBy(entity, where, true)
     tableNames = [].concat(tableNames)
+
+    console.log(searchWhere, '00000000')
 
     const tblLen = tableNames.length
     let data: any[] = []
