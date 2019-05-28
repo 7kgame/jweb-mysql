@@ -170,7 +170,7 @@ class MysqlDao {
     }
     _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone) {
         let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock);
-        console.log(sql);
+        // console.log(sql)
         return new Promise((res, rej) => {
             this.query(sql).then(function (data) {
                 if (!data || data.length < 1) {
@@ -269,7 +269,6 @@ class MysqlDao {
             };
             let tableNames = utils_1.getTableNameBy(entity, where, true);
             tableNames = [].concat(tableNames);
-            console.log(searchWhere, '00000000');
             const tblLen = tableNames.length;
             let data = [];
             let count = 0;

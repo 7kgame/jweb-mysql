@@ -171,7 +171,7 @@ export default class MysqlDao {
 
   private _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, doEntityClone: boolean): Promise<any[] | null> {
     let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
-    console.log(sql)
+    // console.log(sql)
     return new Promise((res, rej) => {
       this.query(sql).then(function (data) {
         if (!data || data.length < 1) {
@@ -277,8 +277,6 @@ export default class MysqlDao {
 
     let tableNames = getTableNameBy(entity, where, true)
     tableNames = [].concat(tableNames)
-
-    console.log(searchWhere, '00000000')
 
     const tblLen = tableNames.length
     let data: any[] = []

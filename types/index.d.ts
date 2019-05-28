@@ -1,5 +1,6 @@
 import MysqlDao, { ORDER_BY, LIMIT, WHERE, SelectOptions } from './dao'
 import MysqlRepository from './repository'
+import { Pool, PoolConnection, escape, escapeId } from 'mysql'
 
 export default MysqlDao
 
@@ -8,5 +9,10 @@ export {
   LIMIT,
   WHERE,
   SelectOptions,
-  MysqlRepository
+  MysqlRepository,
+
+  escape,
+  escapeId,
+  Pool,
+  PoolConnection
 }
