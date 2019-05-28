@@ -97,7 +97,7 @@ class Utils {
     }
     static generateSelectSql(tbName, options, columns, withoutEscapeKey, withLock) {
         let template = `SELECT `;
-        if (columns) {
+        if (columns && columns.length > 0) {
             for (let item of columns) {
                 template += withoutEscapeKey ? item : `${mysql_1.escapeId(item)}`;
                 template += ', ';

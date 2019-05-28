@@ -183,7 +183,7 @@ export default class Utils {
 
   static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean): string {
     let template = `SELECT `
-    if (columns) {
+    if (columns && columns.length > 0) {
       for (let item of columns) {
         template += withoutEscapeKey ? item : `${escapeId(item)}`
         template += ', '

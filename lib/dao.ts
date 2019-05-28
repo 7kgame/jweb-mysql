@@ -123,11 +123,11 @@ export default class MysqlDao {
     })
   }
 
-  public find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, doEntityClone?: boolean): Promise<any> {
-    return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, doEntityClone)
+  public find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, withoutEntityClone?: boolean): Promise<any> {
+    return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, withoutEntityClone)
   }
 
-  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean, doEntityClone?: boolean, tableNames?: any): Promise<any[]> {
+  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean, tableNames?: any): Promise<any[]> {
     if (oneLimit && where
         && where['$where'] === 'undefined'
         && where['$limit'] === 'undefined'
@@ -154,13 +154,13 @@ export default class MysqlDao {
       throw new Error('multi table name exist in findOne case: ' + tableNames)
     }
 
-    doEntityClone = doEntityClone && typeof entity['clone'] === 'function'
+    withoutEntityClone = withoutEntityClone || typeof entity['clone'] !== 'function'
 
     let ret: any[] = []
     for (let i = 0; i < tableNamesLen; i++) {
       let where0: any = (getObjectType(where) === 'array') ? [] : {}
       merge(where0, where)
-      let ret0 = await this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone)
+      let ret0 = await this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone)
       if (oneLimit && ret0 && ret0.length > 0) {
         return ret0[0]
       }
@@ -169,7 +169,7 @@ export default class MysqlDao {
     return ret
   }
 
-  private _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, doEntityClone: boolean): Promise<any[] | null> {
+  private _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, withoutEntityClone: boolean): Promise<any[] | null> {
     let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
     // console.log(sql)
     return new Promise((res, rej) => {
@@ -186,7 +186,7 @@ export default class MysqlDao {
           if (i > 0 && oneLimit) {
             break
           }
-          if (doEntityClone) {
+          if (!withoutEntityClone) {
             ret.push(entity['clone'](data[i]))
           } else {
             const item = {}
@@ -203,11 +203,11 @@ export default class MysqlDao {
     })
   }
 
-  public findById (entity: Function, id: any, columns?: string[], withLock?: boolean, doEntityClone?: boolean): Promise<any> {
+  public findById (entity: Function, id: any, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<any> {
     if (id === undefined) {
       return makeSimplePromise(null)
     }
-    return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, withLock, doEntityClone)
+    return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, withLock, withoutEntityClone)
   }
 
   public updateById (entity: object, id: any): Promise<number> {
@@ -249,8 +249,8 @@ export default class MysqlDao {
     return this.query(sql, null, oneLimit)
   }
 
-  public async searchByPage (entity: Function, where: SelectOptions | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], doEntityClone?: boolean): Promise<Page> {
-    const ret: Page = {total: 0, list: null}
+  public async searchByPage<T> (entity: Function, where: SelectOptions | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
+    const ret: Page<T> = {total: 0, list: null}
     pageSize = pageSize - 0
     if (pageSize < 1) {
       return ret
@@ -283,7 +283,7 @@ export default class MysqlDao {
     let count = 0
     for (let i = 0; i < tblLen; i++) {
       if (data.length < limit && searchWhere['$limit'].limit > 0) {
-        let d0 = await this.findAll(entity, searchWhere, columns, false, false, false, doEntityClone, tableNames[i])
+        let d0 = await this.findAll(entity, searchWhere, columns, false, false, false, withoutEntityClone, tableNames[i])
         data = data.concat(d0)
       }
       let c0 = await this.count(entity, where, tableNames[i])

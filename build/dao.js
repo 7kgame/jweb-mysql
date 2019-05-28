@@ -123,10 +123,10 @@ class MysqlDao {
             });
         });
     }
-    find(entity, where, columns, withoutEscapeKey, withLock, doEntityClone) {
-        return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, doEntityClone);
+    find(entity, where, columns, withoutEscapeKey, withLock, withoutEntityClone) {
+        return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, withoutEntityClone);
     }
-    findAll(entity, where, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone, tableNames) {
+    findAll(entity, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, tableNames) {
         return __awaiter(this, void 0, void 0, function* () {
             if (oneLimit && where
                 && where['$where'] === 'undefined'
@@ -154,12 +154,12 @@ class MysqlDao {
             if (oneLimit && tableNamesLen > 1) {
                 throw new Error('multi table name exist in findOne case: ' + tableNames);
             }
-            doEntityClone = doEntityClone && typeof entity['clone'] === 'function';
+            withoutEntityClone = withoutEntityClone || typeof entity['clone'] !== 'function';
             let ret = [];
             for (let i = 0; i < tableNamesLen; i++) {
                 let where0 = (jbean_1.getObjectType(where) === 'array') ? [] : {};
                 jbean_1.merge(where0, where);
-                let ret0 = yield this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone);
+                let ret0 = yield this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone);
                 if (oneLimit && ret0 && ret0.length > 0) {
                     return ret0[0];
                 }
@@ -168,7 +168,7 @@ class MysqlDao {
             return ret;
         });
     }
-    _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, doEntityClone) {
+    _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone) {
         let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock);
         // console.log(sql)
         return new Promise((res, rej) => {
@@ -185,7 +185,7 @@ class MysqlDao {
                     if (i > 0 && oneLimit) {
                         break;
                     }
-                    if (doEntityClone) {
+                    if (!withoutEntityClone) {
                         ret.push(entity['clone'](data[i]));
                     }
                     else {
@@ -202,11 +202,11 @@ class MysqlDao {
             });
         });
     }
-    findById(entity, id, columns, withLock, doEntityClone) {
+    findById(entity, id, columns, withLock, withoutEntityClone) {
         if (id === undefined) {
             return makeSimplePromise(null);
         }
-        return this.find(entity, utils_1.default.makeWhereByPK(entity, id), columns, false, withLock, doEntityClone);
+        return this.find(entity, utils_1.default.makeWhereByPK(entity, id), columns, false, withLock, withoutEntityClone);
     }
     updateById(entity, id) {
         if (id === undefined) {
@@ -243,7 +243,7 @@ class MysqlDao {
         sql += utils_1.default.generateWhereSql(where, withLock);
         return this.query(sql, null, oneLimit);
     }
-    searchByPage(entity, where, page, pageSize, orderBy, columns, doEntityClone) {
+    searchByPage(entity, where, page, pageSize, orderBy, columns, withoutEntityClone) {
         return __awaiter(this, void 0, void 0, function* () {
             const ret = { total: 0, list: null };
             pageSize = pageSize - 0;
@@ -274,7 +274,7 @@ class MysqlDao {
             let count = 0;
             for (let i = 0; i < tblLen; i++) {
                 if (data.length < limit && searchWhere['$limit'].limit > 0) {
-                    let d0 = yield this.findAll(entity, searchWhere, columns, false, false, false, doEntityClone, tableNames[i]);
+                    let d0 = yield this.findAll(entity, searchWhere, columns, false, false, false, withoutEntityClone, tableNames[i]);
                     data = data.concat(d0);
                 }
                 let c0 = yield this.count(entity, where, tableNames[i]);
