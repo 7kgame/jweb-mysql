@@ -1,5 +1,5 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
-import Utils, { getTableNameBy, SelectOptions, ORDER_BY } from './utils'
+import Utils, { getTableNameBy, SelectOptions, ORDER_BY, WHERE } from './utils'
 import { getObjectType, merge, Page } from 'jbean'
 
 const printSql = function (sql: string): void {
@@ -230,7 +230,7 @@ export default class MysqlDao {
     delete where0['$limit']
     delete where0['$orderBy']
     return new Promise((res, rej) => {
-      this.findAll(entity, where0, ['count(*) as count'], true, false, false, false, tableNames).then(function(data) {
+      this.findAll(entity, where0, ['count(*) as count'], true, false, false, true, tableNames).then(function(data) {
         const dataLen = data.length
         let count = 0
         for (let i = 0; i < dataLen; i++) {
@@ -249,7 +249,7 @@ export default class MysqlDao {
     return this.query(sql, null, oneLimit)
   }
 
-  public async searchByPage<T> (entity: Function, where: SelectOptions | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
+  public async searchByPage<T> (entity: Function, where: WHERE | WHERE[] | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
     const ret: Page<T> = {total: 0, list: null}
     pageSize = pageSize - 0
     if (pageSize < 1) {

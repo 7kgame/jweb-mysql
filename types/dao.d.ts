@@ -26,7 +26,7 @@ export default interface MysqlDao {
   updateById (entity: object, id: any): Promise<number>
   deleteById (entity: Function, id: any): Promise<number>
   selectBy (sql: string, where?: SelectOptions | object, withLock?: boolean, oneLimit?: boolean): Promise<any[]>
-  searchByPage<T> (entity: Function, where: SelectOptions | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>>
+  searchByPage<T> (entity: Function, where: WHERE | WHERE[] | object, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>>
   query (sql: string, valueset?: object, oneLimit?: boolean): Promise<any>
 
 }

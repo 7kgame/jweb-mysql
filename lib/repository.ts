@@ -1,6 +1,6 @@
 import { BeanFactory, CTOR_JWEB_PACKAGE_KEY, Page } from 'jbean'
 import MysqlDao from './dao'
-import { ORDER_BY, SelectOptions } from './utils'
+import { ORDER_BY, SelectOptions, WHERE } from './utils'
 
 const BEAN_PREFIX = 'mysql.'
 const DEFAULT_DAO_BEAN = 'primary'
@@ -88,7 +88,7 @@ export default class MysqlRepository<T> {
     return this.getDao().selectBy(sql, where, withLock, oneLimit)
   }
 
-  public searchByPage<T> (where: SelectOptions | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
+  public searchByPage<T> (where: WHERE | WHERE[] | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
     if (where && typeof where['toObject'] === 'function') {
       where = where['toObject']()
     }

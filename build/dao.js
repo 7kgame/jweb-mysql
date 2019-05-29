@@ -226,7 +226,7 @@ class MysqlDao {
         delete where0['$limit'];
         delete where0['$orderBy'];
         return new Promise((res, rej) => {
-            this.findAll(entity, where0, ['count(*) as count'], true, false, false, false, tableNames).then(function (data) {
+            this.findAll(entity, where0, ['count(*) as count'], true, false, false, true, tableNames).then(function (data) {
                 const dataLen = data.length;
                 let count = 0;
                 for (let i = 0; i < dataLen; i++) {
