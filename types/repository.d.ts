@@ -1,4 +1,4 @@
-import MysqlDao, { ORDER_BY, SelectOptions, WHERE} from './dao'
+import MysqlDao, { ORDER_BY, SelectOptions, WHERE, UPDATE_RESULT} from './dao'
 import { Page } from 'jbean'
 
 export default class MysqlRepository<T> {
@@ -10,12 +10,12 @@ export default class MysqlRepository<T> {
   getDao(master?: boolean): MysqlDao
 
   insert (entity: T): Promise<number>
-  update (entity: T): Promise<number>
-  delete (entity: T): Promise<number>
-  updateBy (entity: T, where: SelectOptions | object): Promise<number>
-  deleteBy (where: SelectOptions | object): Promise<number>
-  updateById (entity: object, id: any): Promise<number>
-  deleteById (id: any): Promise<number>
+  update (entity: T): Promise<UPDATE_RESULT>
+  delete (entity: T): Promise<UPDATE_RESULT>
+  updateBy (entity: T, where: SelectOptions | object): Promise<UPDATE_RESULT>
+  deleteBy (where: SelectOptions | object): Promise<UPDATE_RESULT>
+  updateById (entity: object, id: any): Promise<UPDATE_RESULT>
+  deleteById (id: any): Promise<UPDATE_RESULT>
   find (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T>
   findAll (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean): Promise<T[]>
   findById (id: any, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T>

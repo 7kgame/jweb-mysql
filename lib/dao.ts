@@ -1,6 +1,8 @@
 import { createPool, Pool, PoolConnection } from 'mysql'
 import Utils, { getTableNameBy, SelectOptions, ORDER_BY, WHERE } from './utils'
-import { getObjectType, merge, Page } from 'jbean'
+import { getObjectType, Page } from 'jbean'
+
+export type UPDATE_RESULT = {affected: number, changed: number}
 
 const printSql = function (sql: string): void {
   if (process.env.NODE_ENV !== 'development') {
@@ -77,38 +79,39 @@ export default class MysqlDao {
   }
 
   public insert(entity: object): Promise<any> {
-    const valueset = entity['toObject'] ? entity['toObject']() : entity
     const tableNames: any = getTableNameBy(entity)
     if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
       throw new Error('multi table name exist in insert case: ' + tableNames)
     }
-    let sql = Utils.generateInsertSql(tableNames, valueset)
+    let sql = Utils.generateInsertSql(tableNames, entity)
     return new Promise((res, rej) => {
       this.query(sql).then(function (ret) {
-        res(ret.insertId)
+        res(ret.insertId || ret.affectedRows)
       }, function (e) {
         rej(e)
       })
     })
   }
 
-  public update (entity: object, where: SelectOptions | object): Promise<number> {
-    const valueset = entity['toObject'] ? entity['toObject']() : entity
+  public update (entity: object, where: SelectOptions | WHERE | WHERE[] | object): Promise<UPDATE_RESULT> {
     const tableNames: any = getTableNameBy(entity, where)
     if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
       throw new Error('multi table name exist in update case: ' + tableNames)
     }
-    let sql = Utils.generateUpdateSql(tableNames, valueset, where)
+    let sql = Utils.generateUpdateSql(tableNames, entity, where)
     return new Promise((res, rej) => {
       this.query(sql).then(function (ret) {
-        res(ret.affectedRows)
+        res({
+          changed: ret.changedRows,
+          affected: ret.affectedRows
+        })
       }, function (e) {
         rej(e)
       })
     })
   }
 
-  public delete (entity: Function, where: SelectOptions | object): Promise<number> {
+  public delete (entity: Function, where: SelectOptions | WHERE | WHERE[] | object): Promise<UPDATE_RESULT> {
     const tableNames: any = getTableNameBy(entity, where)
     if (getObjectType(tableNames) === 'array' && tableNames.length > 1) {
       throw new Error('multi table name exist in delete case: ' + tableNames)
@@ -116,30 +119,21 @@ export default class MysqlDao {
     let sql = Utils.generateDeleteSql(tableNames, where)
     return new Promise((res, rej) => {
       this.query(sql).then(function (ret) {
-        res(ret.affectedRows)
+        res({
+          changed: ret.changedRows,
+          affected: ret.affectedRows
+        })
       }, function (e) {
         rej(e)
       })
     })
   }
 
-  public find (entity: Function, where: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, withoutEntityClone?: boolean): Promise<any> {
+  public find (entity: Function, where: SelectOptions | WHERE | WHERE[] | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, withoutEntityClone?: boolean): Promise<any> {
     return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, withoutEntityClone)
   }
 
-  public async findAll (entity: Function, where?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean, tableNames?: any): Promise<any[]> {
-    if (oneLimit && where
-        && where['$where'] === 'undefined'
-        && where['$limit'] === 'undefined'
-        && where['$orderBy'] === 'undefined') {
-      where = {
-        $where: {$op: 'and', ...where},
-        $limit: {limit: 1}
-      }
-    }
-    if (oneLimit && where && where['$limit']) {
-      where['$limit'].limit = 1
-    }
+  public async findAll (entity: Function, where?: SelectOptions | WHERE | WHERE[] | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean, tableNames?: any): Promise<any[]> {
     if (!tableNames) {
       tableNames = getTableNameBy(entity, where, !oneLimit)
     }
@@ -158,20 +152,24 @@ export default class MysqlDao {
 
     let ret: any[] = []
     for (let i = 0; i < tableNamesLen; i++) {
-      let where0: any = (getObjectType(where) === 'array') ? [] : {}
-      merge(where0, where)
-      let ret0 = await this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone)
+      let ret0 = await this._doFind(entity, tableNames[i], where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone)
       if (oneLimit && ret0 && ret0.length > 0) {
         return ret0[0]
       }
       ret = ret.concat(ret0)
     }
+    if (oneLimit) {
+      if (ret.length === 0) {
+        return null
+      } else if (ret.length === 1) {
+        return ret[0]
+      }
+    }
     return ret
   }
 
   private _doFind (entity: Function, tableName: string, where: SelectOptions | object, columns: string[], withoutEscapeKey: boolean, withLock: boolean, oneLimit: boolean, withoutEntityClone: boolean): Promise<any[] | null> {
-    let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock)
-    // console.log(sql)
+    let sql = Utils.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock, oneLimit)
     return new Promise((res, rej) => {
       this.query(sql).then(function (data) {
         if (!data || data.length < 1) {
@@ -210,27 +208,28 @@ export default class MysqlDao {
     return this.find(entity, Utils.makeWhereByPK(entity, id), columns, false, withLock, withoutEntityClone)
   }
 
-  public updateById (entity: object, id: any): Promise<number> {
+  public updateById (entity: object, id: any): Promise<UPDATE_RESULT> {
     if (id === undefined) {
       return makeSimplePromise(0)
     }
     return this.update(entity, Utils.makeWhereByPK(entity, id))
   }
 
-  public deleteById (entity: Function, id: any): Promise<number> {
+  public deleteById (entity: Function, id: any): Promise<UPDATE_RESULT> {
     if (id === undefined) {
       return makeSimplePromise(0)
     }
     return this.delete(entity, Utils.makeWhereByPK(entity, id))
   }
 
-  public count (entity: Function, where?: SelectOptions | object, tableNames?: any): Promise<number> {
-    let where0: any = (getObjectType(where) === 'array') ? [] : {}
-    merge(where0, where)
-    delete where0['$limit']
-    delete where0['$orderBy']
+  public count (entity: Function, where?: SelectOptions | WHERE | WHERE[] | object, tableNames?: any): Promise<number> {
+    // let where0: any = (getObjectType(where) === 'array') ? [] : {}
+    // merge(where0, where)
+    // delete where0['$limit']
+    // delete where0['$orderBy']
+    where = (where && where['$where']) ? where['$where'] : where
     return new Promise((res, rej) => {
-      this.findAll(entity, where0, ['count(*) as count'], true, false, false, true, tableNames).then(function(data) {
+      this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames).then(function(data) {
         const dataLen = data.length
         let count = 0
         for (let i = 0; i < dataLen; i++) {
@@ -244,7 +243,7 @@ export default class MysqlDao {
     })
   }
 
-  public selectBy (sql: string, where?: SelectOptions | object, withLock?: boolean, oneLimit?: boolean): Promise<any[]> {
+  public selectBy (sql: string, where?: SelectOptions | WHERE | WHERE[] | object, withLock?: boolean, oneLimit?: boolean): Promise<any[]> {
     sql += Utils.generateWhereSql(where, withLock)
     return this.query(sql, null, oneLimit)
   }
@@ -264,13 +263,14 @@ export default class MysqlDao {
     const start = (page - 1) * pageSize
 
     const searchWhere: any = {
-      $where: getObjectType(where) === 'array' ? [] : {}
+      // $where: getObjectType(where) === 'array' ? [] : {}
+      $where: (where && where['$where']) ? where['$where'] : where
     }
-    merge(searchWhere.$where, where['$where'] || where)
+    // merge(searchWhere.$where, where['$where'] || where)
     if (orderBy) {
       searchWhere.$orderBy = orderBy
     }
-    searchWhere['$limit'] = {
+    searchWhere.$limit = {
       limit: limit,
       start: start
     }

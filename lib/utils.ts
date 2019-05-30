@@ -13,39 +13,49 @@ interface SelectOptions {
 
 export { SelectOptions, ORDER_BY, LIMIT, WHERE }
 
-export const getTableNameBy = function (entity: any, where?: SelectOptions | object, supportMulti?: boolean): string | string[] {
+export const getTableNameBy = function (entity: any, options?: SelectOptions | WHERE | WHERE[] | object, supportMulti?: boolean): string | string[] {
   if (typeof entity === 'object') {
     entity = entity.constructor
   }
 
   if (typeof entity['getTableNames'] === 'function') {
-    let conditions = {}
-    if (where && where['$where']) {
-      conditions = where['$where']
-    } else if (where) {
-      conditions = where
-    }
-    const keys = Object.keys(conditions)
-    const keyLen = keys.length
-    const conditions2 = {}
-    for (let i = 0; i < keyLen; i++) {
-      const key = keys[i]
-      if (key === '$where' || key === '$orderBy' || key === '$limit') {
+    const where = [].concat((options && options['$options']) ? options['$where'] : options)
+    const whereLen = where.length
+    const conditions = {}
+    for (let it = 0; it < whereLen; it++) {
+      const $whereI = (where[it] && where[it]['toObject']) ? where[it]['toObject']() : where[it]
+      if (typeof $whereI !== 'object') {
         continue
       }
-      let val = conditions[keys[i]]
-      let compareSymbol = '='
-      if (typeof val === 'string') {
-        const valInfo = val.split(' ')
-        if (valInfo.length > 1) {
-          val = valInfo.slice(1).join(' ')
-          compareSymbol = valInfo[0]
+      let op = $whereI['$op'] ? $whereI['$op'].toUpperCase() : null
+      const keys = Object.keys($whereI)
+      const keyLen = keys.length
+      for (let itK = 0; itK < keyLen; itK++) {
+        const key = keys[itK]
+        if (key === '$op') {
+          continue
+        }
+        if (typeof conditions[key] === 'undefined') {
+          conditions[key] = []
+        }
+        let val = $whereI[key]
+        if (keyLen === 2 && op) {
+          conditions[key].push([op, val])
+        } else {
+          let compareSymbol = '='
+          if (typeof val === 'string') {
+            const valInfo = val.split(' ')
+            if (valInfo.length > 1) {
+              val = valInfo.slice(1).join(' ')
+              compareSymbol = valInfo[0]
+            }
+          }
+          conditions[key].push([compareSymbol, val])
         }
       }
-      conditions2[key] = [val, compareSymbol]
     }
 
-    const tblNames = entity['getTableNames'](conditions2, !!supportMulti, entity)
+    const tblNames = entity['getTableNames'](conditions, supportMulti, entity)
     if (tblNames && tblNames.length > 0) {
       return tblNames
     }
@@ -60,42 +70,64 @@ export const getTableNameBy = function (entity: any, where?: SelectOptions | obj
 export default class Utils {
   static methods = {
     templateAppendWhere(template: string, $where: any): string {
+      const where = [].concat($where)
       template += " WHERE "
-      if (getObjectType($where) !== 'array') {
-        $where = [$where]
-      }
       const sql: string[] = []
-      const whereLen = $where.length
+      const whereLen = where.length
       for (let it = 0; it < whereLen; it++) {
-        const $whereI = $where[it]
+        const $whereI = (where[it] && where[it]['toObject']) ? where[it]['toObject']() : where[it]
         if (typeof $whereI !== 'object') {
           continue
         }
-        let op = ' AND '
-        if ($whereI['$op']) {
-          op = ' ' + $whereI['$op'].toUpperCase() + ' '
-        }
+        let op = $whereI['$op'] ? $whereI['$op'].toUpperCase() : null
         const keys = Object.keys($whereI)
         const keyLen = keys.length
         const conds: string[] = []
+        let compareSymbol = op
         for (let itK = 0; itK < keyLen; itK++) {
           const key = keys[itK]
-          let compareSymbol = '='
           let val = $whereI[key]
           if (key === '$op') {
             continue
           }
-          if (typeof val === 'string') {
-            const valInfo = val.split(' ')
-            if (valInfo.length > 1) {
-              val = valInfo.slice(1).join(' ')
-              compareSymbol = valInfo[0]
+          if (keyLen === 2 && op) {
+            if (getObjectType(val) === 'array') {
+              const vals = []
+              const valLen = val.length
+              for (let itV = 0; itV < valLen; itV++) {
+                vals.push(escape(val[itV]))
+              }
+              if (op === 'BETWEEN') {
+                val = vals.join(' AND ')
+              } else if (op === 'IN') {
+                val = '(' + vals.join(', ') + ')'
+              } else {
+                val = vals.join(', ')
+              }
+            } else {
+              if (val !== null && ['object', 'function'].indexOf(typeof val) >= 0) {
+                throw new Error('value type is not simple: ' + JSON.stringify($whereI))
+              }
+              val = escape(val)
             }
+          } else {
+            if (val !== null && ['object', 'function'].indexOf(typeof val) >= 0) {
+              throw new Error('value type is not simple: ' + JSON.stringify($whereI))
+            }
+            compareSymbol = '='
+            if (typeof val === 'string') {
+              const valInfo = val.split(' ')
+              if (valInfo.length > 1) {
+                val = valInfo.slice(1).join(' ')
+                compareSymbol = valInfo[0]
+              }
+            }
+            val = escape(val)
           }
-          conds.push(`${escapeId(key)} ${compareSymbol} ${escape(val)}`)
+          conds.push(`${escapeId(key)} ${compareSymbol} ${val}`)
         }
         if (conds.length > 0) {
-          sql.push(conds.join(op))
+          sql.push(conds.join(op ? (' ' + op + '') : ' AND '))
         }
       }
       if (sql.length < 1) {
@@ -126,26 +158,22 @@ export default class Utils {
     }
   }
 
-  static generateWhereSql (options?: SelectOptions | object, withLock?: boolean): string {
+  static generateWhereSql (options?: SelectOptions | object, withLock?: boolean, oneLimit?: boolean): string {
     let template: string = ''
-    let hasSpecifiedOptionName = false
-    if (options && options['$where']) {
-      hasSpecifiedOptionName = true
-      template = Utils.methods.templateAppendWhere(template, options['$where'])
+    let where = options || {}
+    if (!where['$where'] && !where['$orderby'] && !where['$limit']) {
+      where = {$where: where}
     }
-    if (options && options['$orderby']) {
-      hasSpecifiedOptionName = true
-      template = Utils.methods.templateAppendOrderBy(template, options['$orderby'])
-      delete options['$orderby']
+    if (where['$where']) {
+      template = Utils.methods.templateAppendWhere(template, where['$where'])
     }
-    if (options && options['$limit']) {
-      hasSpecifiedOptionName = true
-      template = Utils.methods.templateAppendLimit(template, options['$limit'])
-      delete options['$limit']
+    if (where['$orderby']) {
+      template = Utils.methods.templateAppendOrderBy(template, where['$orderby'])
     }
-    if (options && !hasSpecifiedOptionName) {
-      options['$op'] = 'and'
-      template = Utils.methods.templateAppendWhere(template, options)
+    if (where['$limit']) {
+      template = Utils.methods.templateAppendLimit(template, where['$limit'])
+    } else if (oneLimit) {
+      template = Utils.methods.templateAppendLimit(template, {limit: 1})
     }
     if (withLock) {
       template += ' FOR UPDATE'
@@ -155,6 +183,7 @@ export default class Utils {
   }
 
   static generateInsertSql(tbName: string, valueset: object): string {
+    valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset
     let template = `INSERT INTO ${escapeId(tbName)}(`
     for (let k of Object.keys(valueset)) {
       template += escapeId(k) + ", "
@@ -167,7 +196,8 @@ export default class Utils {
     return template
   }
 
-  static generateUpdateSql(tbName: string, valueset: object, $where?: SelectOptions | object): string {
+  static generateUpdateSql(tbName: string, valueset: object, $where?: SelectOptions | WHERE | WHERE[] | object): string {
+    valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset
     let template = `UPDATE ${escapeId(tbName)} SET `
     for (let  [k, v] of Object.entries(valueset)) {
       template += `${escapeId(k)} = ${escape(v)}, `
@@ -176,12 +206,12 @@ export default class Utils {
     return template + this.generateWhereSql($where)
   }
 
-  static generateDeleteSql(tbName: string, $where?: SelectOptions | object): string {
+  static generateDeleteSql(tbName: string, $where?: SelectOptions | WHERE | WHERE[] | object): string {
     let template = `DELETE FROM ${escapeId(tbName)}`
     return template + this.generateWhereSql($where)
   }
 
-  static generateSelectSql(tbName: string, options?: SelectOptions | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean): string {
+  static generateSelectSql(tbName: string, options?: SelectOptions | WHERE | WHERE[] | object, columns?: string[], withoutEscapeKey?: boolean, withLock?: boolean, oneLimit?: boolean): string {
     let template = `SELECT `
     if (columns && columns.length > 0) {
       for (let item of columns) {
@@ -194,7 +224,7 @@ export default class Utils {
     }
 
     template += ` FROM ${escapeId(tbName)}`
-    return template + this.generateWhereSql(options, withLock)
+    return template + this.generateWhereSql(options, withLock, oneLimit)
   }
 
   static makeWhereByPK (entity: Function | object, id: any) {

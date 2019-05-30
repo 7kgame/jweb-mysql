@@ -49,36 +49,36 @@ class MysqlRepository {
         return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id));
     }
     find(where, columns, withLock, withoutEntityClone) {
-        if (typeof where['toObject'] === 'function') {
-            where = where['toObject']();
-        }
+        // if (typeof where['toObject'] === 'function') {
+        //   where = where['toObject']()
+        // }
         return this.getDao().find(this.entityClz, where, columns, false, withLock, withoutEntityClone);
     }
     findAll(where, columns, withLock, oneLimit, withoutEntityClone) {
-        if (where && typeof where['toObject'] === 'function') {
-            where = where['toObject']();
-        }
+        // if (where && typeof where['toObject'] === 'function') {
+        //   where = where['toObject']()
+        // }
         return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, withoutEntityClone);
     }
     findById(id, columns, withLock, withoutEntityClone) {
         return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, withoutEntityClone);
     }
     searchBy(sql, where, withLock, oneLimit) {
-        if (where && typeof where['toObject'] === 'function') {
-            where = where['toObject']();
-        }
+        // if (where && typeof where['toObject'] === 'function') {
+        //   where = where['toObject']()
+        // }
         return this.getDao().selectBy(sql, where, withLock, oneLimit);
     }
     searchByPage(where, page, pageSize, orderBy, columns, withoutEntityClone) {
-        if (where && typeof where['toObject'] === 'function') {
-            where = where['toObject']();
-        }
+        // if (where && typeof where['toObject'] === 'function') {
+        //   where = where['toObject']()
+        // }
         return this.getDao().searchByPage(this.entityClz, where, page, pageSize, orderBy, columns, withoutEntityClone);
     }
     count(where) {
-        if (typeof where['toObject'] === 'function') {
-            where = where['toObject']();
-        }
+        // if (typeof where['toObject'] === 'function') {
+        //   where = where['toObject']()
+        // }
         return this.getDao().count(this.entityClz, where);
     }
     query(sql, valueset, master, oneLimit) {

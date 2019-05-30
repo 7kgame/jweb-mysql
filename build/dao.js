@@ -80,30 +80,31 @@ class MysqlDao {
         });
     }
     insert(entity) {
-        const valueset = entity['toObject'] ? entity['toObject']() : entity;
         const tableNames = utils_1.getTableNameBy(entity);
         if (jbean_1.getObjectType(tableNames) === 'array' && tableNames.length > 1) {
             throw new Error('multi table name exist in insert case: ' + tableNames);
         }
-        let sql = utils_1.default.generateInsertSql(tableNames, valueset);
+        let sql = utils_1.default.generateInsertSql(tableNames, entity);
         return new Promise((res, rej) => {
             this.query(sql).then(function (ret) {
-                res(ret.insertId);
+                res(ret.insertId || ret.affectedRows);
             }, function (e) {
                 rej(e);
             });
         });
     }
     update(entity, where) {
-        const valueset = entity['toObject'] ? entity['toObject']() : entity;
         const tableNames = utils_1.getTableNameBy(entity, where);
         if (jbean_1.getObjectType(tableNames) === 'array' && tableNames.length > 1) {
             throw new Error('multi table name exist in update case: ' + tableNames);
         }
-        let sql = utils_1.default.generateUpdateSql(tableNames, valueset, where);
+        let sql = utils_1.default.generateUpdateSql(tableNames, entity, where);
         return new Promise((res, rej) => {
             this.query(sql).then(function (ret) {
-                res(ret.affectedRows);
+                res({
+                    changed: ret.changedRows,
+                    affected: ret.affectedRows
+                });
             }, function (e) {
                 rej(e);
             });
@@ -117,7 +118,10 @@ class MysqlDao {
         let sql = utils_1.default.generateDeleteSql(tableNames, where);
         return new Promise((res, rej) => {
             this.query(sql).then(function (ret) {
-                res(ret.affectedRows);
+                res({
+                    changed: ret.changedRows,
+                    affected: ret.affectedRows
+                });
             }, function (e) {
                 rej(e);
             });
@@ -128,18 +132,6 @@ class MysqlDao {
     }
     findAll(entity, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, tableNames) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (oneLimit && where
-                && where['$where'] === 'undefined'
-                && where['$limit'] === 'undefined'
-                && where['$orderBy'] === 'undefined') {
-                where = {
-                    $where: Object.assign({ $op: 'and' }, where),
-                    $limit: { limit: 1 }
-                };
-            }
-            if (oneLimit && where && where['$limit']) {
-                where['$limit'].limit = 1;
-            }
             if (!tableNames) {
                 tableNames = utils_1.getTableNameBy(entity, where, !oneLimit);
             }
@@ -157,20 +149,25 @@ class MysqlDao {
             withoutEntityClone = withoutEntityClone || typeof entity['clone'] !== 'function';
             let ret = [];
             for (let i = 0; i < tableNamesLen; i++) {
-                let where0 = (jbean_1.getObjectType(where) === 'array') ? [] : {};
-                jbean_1.merge(where0, where);
-                let ret0 = yield this._doFind(entity, tableNames[i], where0, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone);
+                let ret0 = yield this._doFind(entity, tableNames[i], where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone);
                 if (oneLimit && ret0 && ret0.length > 0) {
                     return ret0[0];
                 }
                 ret = ret.concat(ret0);
             }
+            if (oneLimit) {
+                if (ret.length === 0) {
+                    return null;
+                }
+                else if (ret.length === 1) {
+                    return ret[0];
+                }
+            }
             return ret;
         });
     }
     _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone) {
-        let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock);
-        // console.log(sql)
+        let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock, oneLimit);
         return new Promise((res, rej) => {
             this.query(sql).then(function (data) {
                 if (!data || data.length < 1) {
@@ -221,12 +218,13 @@ class MysqlDao {
         return this.delete(entity, utils_1.default.makeWhereByPK(entity, id));
     }
     count(entity, where, tableNames) {
-        let where0 = (jbean_1.getObjectType(where) === 'array') ? [] : {};
-        jbean_1.merge(where0, where);
-        delete where0['$limit'];
-        delete where0['$orderBy'];
+        // let where0: any = (getObjectType(where) === 'array') ? [] : {}
+        // merge(where0, where)
+        // delete where0['$limit']
+        // delete where0['$orderBy']
+        where = (where && where['$where']) ? where['$where'] : where;
         return new Promise((res, rej) => {
-            this.findAll(entity, where0, ['count(*) as count'], true, false, false, true, tableNames).then(function (data) {
+            this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames).then(function (data) {
                 const dataLen = data.length;
                 let count = 0;
                 for (let i = 0; i < dataLen; i++) {
@@ -257,13 +255,14 @@ class MysqlDao {
             const limit = pageSize - 0;
             const start = (page - 1) * pageSize;
             const searchWhere = {
-                $where: jbean_1.getObjectType(where) === 'array' ? [] : {}
+                // $where: getObjectType(where) === 'array' ? [] : {}
+                $where: (where && where['$where']) ? where['$where'] : where
             };
-            jbean_1.merge(searchWhere.$where, where['$where'] || where);
+            // merge(searchWhere.$where, where['$where'] || where)
             if (orderBy) {
                 searchWhere.$orderBy = orderBy;
             }
-            searchWhere['$limit'] = {
+            searchWhere.$limit = {
                 limit: limit,
                 start: start
             };

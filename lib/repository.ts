@@ -1,5 +1,5 @@
 import { BeanFactory, CTOR_JWEB_PACKAGE_KEY, Page } from 'jbean'
-import MysqlDao from './dao'
+import MysqlDao, { UPDATE_RESULT } from './dao'
 import { ORDER_BY, SelectOptions, WHERE } from './utils'
 
 const BEAN_PREFIX = 'mysql.'
@@ -39,41 +39,41 @@ export default class MysqlRepository<T> {
     return this.getDao(true).insert(<any> entity)
   }
 
-  public update (entity: T): Promise<number> {
+  public update (entity: T): Promise<UPDATE_RESULT> {
     return this.getDao(true).update(<any> entity, this.entityClz['getPrimaryVal'](entity, true))
   }
 
-  public delete (entity: T): Promise<number> {
+  public delete (entity: T): Promise<UPDATE_RESULT> {
     return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](entity, true))
   }
 
-  public updateBy (entity: T, where: SelectOptions | object): Promise<number> {
+  public updateBy (entity: T, where: SelectOptions | object): Promise<UPDATE_RESULT> {
     return this.getDao(true).update(<any> entity, where)
   }
 
-  public deleteBy (where: SelectOptions | object): Promise<number> {
+  public deleteBy (where: SelectOptions | object): Promise<UPDATE_RESULT> {
     return this.getDao(true).delete(this.entityClz, where)
   }
 
-  public updateById (entity: object, id: any): Promise<number> {
+  public updateById (entity: object, id: any): Promise<UPDATE_RESULT> {
     return this.getDao(true).update(entity, this.entityClz['getPrimaryVal'](entity, true, id))
   }
 
-  public deleteById (id: any): Promise<number> {
+  public deleteById (id: any): Promise<UPDATE_RESULT> {
     return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id))
   }
 
   public find (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T> {
-    if (typeof where['toObject'] === 'function') {
-      where = where['toObject']()
-    }
+    // if (typeof where['toObject'] === 'function') {
+    //   where = where['toObject']()
+    // }
     return this.getDao().find(this.entityClz, where, columns, false, withLock, withoutEntityClone)
   }
 
   public findAll (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean): Promise<T[]> {
-    if (where && typeof where['toObject'] === 'function') {
-      where = where['toObject']()
-    }
+    // if (where && typeof where['toObject'] === 'function') {
+    //   where = where['toObject']()
+    // }
     return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, withoutEntityClone)
   }
 
@@ -82,23 +82,23 @@ export default class MysqlRepository<T> {
   }
 
   public searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<T[]> {
-    if (where && typeof where['toObject'] === 'function') {
-      where = where['toObject']()
-    }
+    // if (where && typeof where['toObject'] === 'function') {
+    //   where = where['toObject']()
+    // }
     return this.getDao().selectBy(sql, where, withLock, oneLimit)
   }
 
   public searchByPage<T> (where: WHERE | WHERE[] | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
-    if (where && typeof where['toObject'] === 'function') {
-      where = where['toObject']()
-    }
+    // if (where && typeof where['toObject'] === 'function') {
+    //   where = where['toObject']()
+    // }
     return this.getDao().searchByPage(this.entityClz, <any> where, page, pageSize, orderBy, columns, withoutEntityClone)
   }
 
   public count (where?: SelectOptions | object | T): Promise<number> {
-    if (typeof where['toObject'] === 'function') {
-      where = where['toObject']()
-    }
+    // if (typeof where['toObject'] === 'function') {
+    //   where = where['toObject']()
+    // }
     return this.getDao().count(this.entityClz, where)
   }
 
