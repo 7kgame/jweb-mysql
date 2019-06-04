@@ -218,10 +218,6 @@ class MysqlDao {
         return this.delete(entity, utils_1.default.makeWhereByPK(entity, id));
     }
     count(entity, where, tableNames) {
-        // let where0: any = (getObjectType(where) === 'array') ? [] : {}
-        // merge(where0, where)
-        // delete where0['$limit']
-        // delete where0['$orderBy']
         where = (where && where['$where']) ? where['$where'] : where;
         return new Promise((res, rej) => {
             this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames).then(function (data) {
@@ -255,10 +251,8 @@ class MysqlDao {
             const limit = pageSize - 0;
             const start = (page - 1) * pageSize;
             const searchWhere = {
-                // $where: getObjectType(where) === 'array' ? [] : {}
                 $where: (where && where['$where']) ? where['$where'] : where
             };
-            // merge(searchWhere.$where, where['$where'] || where)
             if (orderBy) {
                 searchWhere.$orderBy = orderBy;
             }

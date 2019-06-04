@@ -223,10 +223,6 @@ export default class MysqlDao {
   }
 
   public count (entity: Function, where?: SelectOptions | WHERE | WHERE[] | object, tableNames?: any): Promise<number> {
-    // let where0: any = (getObjectType(where) === 'array') ? [] : {}
-    // merge(where0, where)
-    // delete where0['$limit']
-    // delete where0['$orderBy']
     where = (where && where['$where']) ? where['$where'] : where
     return new Promise((res, rej) => {
       this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames).then(function(data) {
@@ -263,10 +259,9 @@ export default class MysqlDao {
     const start = (page - 1) * pageSize
 
     const searchWhere: any = {
-      // $where: getObjectType(where) === 'array' ? [] : {}
       $where: (where && where['$where']) ? where['$where'] : where
     }
-    // merge(searchWhere.$where, where['$where'] || where)
+
     if (orderBy) {
       searchWhere.$orderBy = orderBy
     }

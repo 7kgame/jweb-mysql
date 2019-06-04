@@ -64,16 +64,10 @@ export default class MysqlRepository<T> {
   }
 
   public find (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T> {
-    // if (typeof where['toObject'] === 'function') {
-    //   where = where['toObject']()
-    // }
     return this.getDao().find(this.entityClz, where, columns, false, withLock, withoutEntityClone)
   }
 
   public findAll (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean): Promise<T[]> {
-    // if (where && typeof where['toObject'] === 'function') {
-    //   where = where['toObject']()
-    // }
     return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, withoutEntityClone)
   }
 
@@ -81,24 +75,15 @@ export default class MysqlRepository<T> {
     return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, withoutEntityClone)
   }
 
-  public searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<T[]> {
-    // if (where && typeof where['toObject'] === 'function') {
-    //   where = where['toObject']()
-    // }
+  public searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<any[]> {
     return this.getDao().selectBy(sql, where, withLock, oneLimit)
   }
 
   public searchByPage<T> (where: WHERE | WHERE[] | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
-    // if (where && typeof where['toObject'] === 'function') {
-    //   where = where['toObject']()
-    // }
     return this.getDao().searchByPage(this.entityClz, <any> where, page, pageSize, orderBy, columns, withoutEntityClone)
   }
 
   public count (where?: SelectOptions | object | T): Promise<number> {
-    // if (typeof where['toObject'] === 'function') {
-    //   where = where['toObject']()
-    // }
     return this.getDao().count(this.entityClz, where)
   }
 

@@ -7,7 +7,7 @@ type LIMIT = {limit: number, start?: number}
 
 interface SelectOptions {
   $where?: WHERE | WHERE[],
-  $orderby?: ORDER_BY,
+  $orderBy?: ORDER_BY,
   $limit?: LIMIT
 }
 
@@ -161,14 +161,14 @@ export default class Utils {
   static generateWhereSql (options?: SelectOptions | object, withLock?: boolean, oneLimit?: boolean): string {
     let template: string = ''
     let where = options || {}
-    if (!where['$where'] && !where['$orderby'] && !where['$limit']) {
+    if (!where['$where'] && !where['$orderBy'] && !where['$limit']) {
       where = {$where: where}
     }
     if (where['$where']) {
       template = Utils.methods.templateAppendWhere(template, where['$where'])
     }
-    if (where['$orderby']) {
-      template = Utils.methods.templateAppendOrderBy(template, where['$orderby'])
+    if (where['$orderBy']) {
+      template = Utils.methods.templateAppendOrderBy(template, where['$orderBy'])
     }
     if (where['$limit']) {
       template = Utils.methods.templateAppendLimit(template, where['$limit'])

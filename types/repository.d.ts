@@ -19,7 +19,7 @@ export default class MysqlRepository<T> {
   find (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T>
   findAll (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean): Promise<T[]>
   findById (id: any, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T>
-  searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<T[]>
+  searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<any[]>
   searchByPage<T> (where: WHERE | WHERE[] | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>>
   count (where?: SelectOptions | object | T): Promise<number>
   query (sql: string, valueset?: any, master?: boolean, oneLimit?: boolean): Promise<any>
