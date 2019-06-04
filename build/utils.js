@@ -199,7 +199,7 @@ Utils.methods = {
                 conds.push(`${mysql_1.escapeId(key)} ${compareSymbol} ${val}`);
             }
             if (conds.length > 0) {
-                sql.push(conds.join(op ? (' ' + op + '') : ' AND '));
+                sql.push(conds.join(op ? (' ' + op + ' ') : ' AND '));
             }
         }
         if (sql.length < 1) {
