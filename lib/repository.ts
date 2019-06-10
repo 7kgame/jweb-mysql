@@ -36,59 +36,59 @@ export default class MysqlRepository<T> {
   }
 
   public insert (entity: T): Promise<number> {
-    return this.getDao(true).insert(<any> entity)
+    return this.getDao(true).insert(<any> entity, BeanFactory.getRequestId(this))
   }
 
   public update (entity: T): Promise<UPDATE_RESULT> {
-    return this.getDao(true).update(<any> entity, this.entityClz['getPrimaryVal'](entity, true))
+    return this.getDao(true).update(<any> entity, this.entityClz['getPrimaryVal'](entity, true), BeanFactory.getRequestId(this))
   }
 
   public delete (entity: T): Promise<UPDATE_RESULT> {
-    return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](entity, true))
+    return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](entity, true), BeanFactory.getRequestId(this))
   }
 
   public updateBy (entity: T, where: SelectOptions | object): Promise<UPDATE_RESULT> {
-    return this.getDao(true).update(<any> entity, where)
+    return this.getDao(true).update(<any> entity, where, BeanFactory.getRequestId(this))
   }
 
   public deleteBy (where: SelectOptions | object): Promise<UPDATE_RESULT> {
-    return this.getDao(true).delete(this.entityClz, where)
+    return this.getDao(true).delete(this.entityClz, where, BeanFactory.getRequestId(this))
   }
 
   public updateById (entity: object, id: any): Promise<UPDATE_RESULT> {
-    return this.getDao(true).update(entity, this.entityClz['getPrimaryVal'](entity, true, id))
+    return this.getDao(true).update(entity, this.entityClz['getPrimaryVal'](entity, true, id), BeanFactory.getRequestId(this))
   }
 
   public deleteById (id: any): Promise<UPDATE_RESULT> {
-    return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id))
+    return this.getDao(true).delete(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), BeanFactory.getRequestId(this))
   }
 
   public find (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T> {
-    return this.getDao().find(this.entityClz, where, columns, false, withLock, withoutEntityClone)
+    return this.getDao().find(this.entityClz, where, columns, false, withLock, withoutEntityClone, BeanFactory.getRequestId(this))
   }
 
   public findAll (where: SelectOptions | object | T, columns?: string[], withLock?: boolean, oneLimit?: boolean, withoutEntityClone?: boolean): Promise<T[]> {
-    return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, withoutEntityClone)
+    return this.getDao().findAll(this.entityClz, where, columns, false, withLock, oneLimit, withoutEntityClone, null, BeanFactory.getRequestId(this))
   }
 
   public findById (id: any, columns?: string[], withLock?: boolean, withoutEntityClone?: boolean): Promise<T> {
-    return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, withoutEntityClone)
+    return this.getDao().find(this.entityClz, this.entityClz['getPrimaryVal'](null, true, id), columns, false, withLock, withoutEntityClone, BeanFactory.getRequestId(this))
   }
 
   public searchBy (sql: string, where?: SelectOptions | object | T, withLock?: boolean, oneLimit?: boolean): Promise<any[]> {
-    return this.getDao().selectBy(sql, where, withLock, oneLimit)
+    return this.getDao().selectBy(sql, where, withLock, oneLimit, BeanFactory.getRequestId(this))
   }
 
   public searchByPage<T> (where: WHERE | WHERE[] | object | T, page: number, pageSize: number, orderBy?: ORDER_BY, columns?: string[], withoutEntityClone?: boolean): Promise<Page<T>> {
-    return this.getDao().searchByPage(this.entityClz, <any> where, page, pageSize, orderBy, columns, withoutEntityClone)
+    return this.getDao().searchByPage(this.entityClz, <any> where, page, pageSize, orderBy, columns, withoutEntityClone, BeanFactory.getRequestId(this))
   }
 
   public count (where?: SelectOptions | object | T): Promise<number> {
-    return this.getDao().count(this.entityClz, where)
+    return this.getDao().count(this.entityClz, where, null, BeanFactory.getRequestId(this))
   }
 
   public query (sql: string, valueset?: any, master?: boolean, oneLimit?: boolean): Promise<any> {
-    return this.getDao(master).query(sql, valueset, oneLimit)
+    return this.getDao(master).query(sql, valueset, oneLimit, BeanFactory.getRequestId(this))
   }
 
 }

@@ -41,6 +41,73 @@ const makeSimplePromise = function (data, err) {
         }
     });
 };
+const connectionPool = {};
+function commitTransaction(requestId) {
+    return new Promise(function (res, rej) {
+        const rKey = 'r_' + requestId;
+        if (typeof connectionPool[rKey] === 'undefined') {
+            res(null);
+            return;
+        }
+        const connection = connectionPool[rKey][0];
+        const pool = connectionPool[rKey][1];
+        delete connectionPool[rKey];
+        connection.commit(function (err) {
+            // connection.release()
+            pool.releaseConnection(connection);
+            if (err) {
+                rej(err);
+            }
+            else {
+                res(null);
+            }
+        });
+    });
+}
+exports.commitTransaction = commitTransaction;
+function rollbackTransaction(requestId) {
+    return new Promise(function (res, rej) {
+        const rKey = 'r_' + requestId;
+        if (typeof connectionPool[rKey] === 'undefined') {
+            res(null);
+            return;
+        }
+        // const connection: PoolConnection = connectionPool[rKey]
+        const connection = connectionPool[rKey][0];
+        const pool = connectionPool[rKey][1];
+        delete connectionPool[rKey];
+        connection.rollback(function (err) {
+            // connection.release()
+            pool.releaseConnection(connection);
+            if (err) {
+                rej(err);
+            }
+            else {
+                res(null);
+            }
+        });
+    });
+}
+exports.rollbackTransaction = rollbackTransaction;
+function releaseConnection(requestId) {
+    const rKey = 'r_' + requestId;
+    if (typeof connectionPool[rKey] === 'undefined') {
+        return;
+    }
+    // const connection: PoolConnection = connectionPool[rKey]
+    const connection = connectionPool[rKey][0];
+    const pool = connectionPool[rKey][1];
+    pool.releaseConnection(connection);
+    // connection.release()
+    delete connectionPool[rKey];
+}
+exports.releaseConnection = releaseConnection;
+jbean_1.registerCommit(function (requestId) {
+    return commitTransaction(requestId);
+});
+jbean_1.registerRollback(function (requestId) {
+    return rollbackTransaction(requestId);
+});
 class MysqlDao {
     constructor(options) {
         this.options = {};
@@ -69,8 +136,38 @@ class MysqlDao {
             }
         });
     }
-    getClient() {
-        return this.pool;
+    getClient(requestId) {
+        return new Promise((res, rej) => {
+            if (!requestId) {
+                res(this.pool);
+            }
+            else {
+                const rKey = 'r_' + requestId;
+                if (typeof connectionPool[rKey] !== 'undefined') {
+                    res(connectionPool[rKey][0]);
+                }
+                else {
+                    const pool = this.pool;
+                    pool.getConnection(function (err, connection) {
+                        if (err) {
+                            rej(err);
+                        }
+                        else {
+                            connection.beginTransaction(function (err) {
+                                if (err) {
+                                    connection.release();
+                                    rej(err);
+                                }
+                                else {
+                                    connectionPool[rKey] = [connection, pool];
+                                    res(connection);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
     }
     disconnect() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -79,28 +176,28 @@ class MysqlDao {
             }
         });
     }
-    insert(entity) {
+    insert(entity, requestId) {
         const tableNames = utils_1.getTableNameBy(entity);
         if (jbean_1.getObjectType(tableNames) === 'array' && tableNames.length > 1) {
             throw new Error('multi table name exist in insert case: ' + tableNames);
         }
         let sql = utils_1.default.generateInsertSql(tableNames, entity);
         return new Promise((res, rej) => {
-            this.query(sql).then(function (ret) {
+            this.query(sql, null, false, requestId).then(function (ret) {
                 res(ret.insertId || ret.affectedRows);
             }, function (e) {
                 rej(e);
             });
         });
     }
-    update(entity, where) {
+    update(entity, where, requestId) {
         const tableNames = utils_1.getTableNameBy(entity, where);
         if (jbean_1.getObjectType(tableNames) === 'array' && tableNames.length > 1) {
             throw new Error('multi table name exist in update case: ' + tableNames);
         }
         let sql = utils_1.default.generateUpdateSql(tableNames, entity, where);
         return new Promise((res, rej) => {
-            this.query(sql).then(function (ret) {
+            this.query(sql, null, false, requestId).then(function (ret) {
                 res({
                     changed: ret.changedRows,
                     affected: ret.affectedRows
@@ -110,14 +207,14 @@ class MysqlDao {
             });
         });
     }
-    delete(entity, where) {
+    delete(entity, where, requestId) {
         const tableNames = utils_1.getTableNameBy(entity, where);
         if (jbean_1.getObjectType(tableNames) === 'array' && tableNames.length > 1) {
             throw new Error('multi table name exist in delete case: ' + tableNames);
         }
         let sql = utils_1.default.generateDeleteSql(tableNames, where);
         return new Promise((res, rej) => {
-            this.query(sql).then(function (ret) {
+            this.query(sql, null, false, requestId).then(function (ret) {
                 res({
                     changed: ret.changedRows,
                     affected: ret.affectedRows
@@ -127,10 +224,10 @@ class MysqlDao {
             });
         });
     }
-    find(entity, where, columns, withoutEscapeKey, withLock, withoutEntityClone) {
-        return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, withoutEntityClone);
+    find(entity, where, columns, withoutEscapeKey, withLock, withoutEntityClone, requestId) {
+        return this.findAll(entity, where, columns, withoutEscapeKey, withLock, true, withoutEntityClone, null, requestId);
     }
-    findAll(entity, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, tableNames) {
+    findAll(entity, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, tableNames, requestId) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!tableNames) {
                 tableNames = utils_1.getTableNameBy(entity, where, !oneLimit);
@@ -149,7 +246,7 @@ class MysqlDao {
             withoutEntityClone = withoutEntityClone || typeof entity['clone'] !== 'function';
             let ret = [];
             for (let i = 0; i < tableNamesLen; i++) {
-                let ret0 = yield this._doFind(entity, tableNames[i], where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone);
+                let ret0 = yield this._doFind(entity, tableNames[i], where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, requestId);
                 if (oneLimit && ret0 && ret0.length > 0) {
                     return ret0[0];
                 }
@@ -166,10 +263,10 @@ class MysqlDao {
             return ret;
         });
     }
-    _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone) {
+    _doFind(entity, tableName, where, columns, withoutEscapeKey, withLock, oneLimit, withoutEntityClone, requestId) {
         let sql = utils_1.default.generateSelectSql(tableName, where, columns, withoutEscapeKey, withLock, oneLimit);
         return new Promise((res, rej) => {
-            this.query(sql).then(function (data) {
+            this.query(sql, null, false, requestId).then(function (data) {
                 if (!data || data.length < 1) {
                     res(oneLimit ? null : []);
                     return;
@@ -199,28 +296,28 @@ class MysqlDao {
             });
         });
     }
-    findById(entity, id, columns, withLock, withoutEntityClone) {
+    findById(entity, id, columns, withLock, withoutEntityClone, requestId) {
         if (id === undefined) {
             return makeSimplePromise(null);
         }
-        return this.find(entity, utils_1.default.makeWhereByPK(entity, id), columns, false, withLock, withoutEntityClone);
+        return this.find(entity, utils_1.default.makeWhereByPK(entity, id), columns, false, withLock, withoutEntityClone, requestId);
     }
-    updateById(entity, id) {
+    updateById(entity, id, requestId) {
         if (id === undefined) {
             return makeSimplePromise(0);
         }
-        return this.update(entity, utils_1.default.makeWhereByPK(entity, id));
+        return this.update(entity, utils_1.default.makeWhereByPK(entity, id), requestId);
     }
-    deleteById(entity, id) {
+    deleteById(entity, id, requestId) {
         if (id === undefined) {
             return makeSimplePromise(0);
         }
-        return this.delete(entity, utils_1.default.makeWhereByPK(entity, id));
+        return this.delete(entity, utils_1.default.makeWhereByPK(entity, id), requestId);
     }
-    count(entity, where, tableNames) {
+    count(entity, where, tableNames, requestId) {
         where = (where && where['$where']) ? where['$where'] : where;
         return new Promise((res, rej) => {
-            this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames).then(function (data) {
+            this.findAll(entity, where, ['count(*) as count'], true, false, false, true, tableNames, requestId).then(function (data) {
                 const dataLen = data.length;
                 let count = 0;
                 for (let i = 0; i < dataLen; i++) {
@@ -233,11 +330,11 @@ class MysqlDao {
             });
         });
     }
-    selectBy(sql, where, withLock, oneLimit) {
+    selectBy(sql, where, withLock, oneLimit, requestId) {
         sql += utils_1.default.generateWhereSql(where, withLock);
-        return this.query(sql, null, oneLimit);
+        return this.query(sql, null, oneLimit, requestId);
     }
-    searchByPage(entity, where, page, pageSize, orderBy, columns, withoutEntityClone) {
+    searchByPage(entity, where, page, pageSize, orderBy, columns, withoutEntityClone, requestId) {
         return __awaiter(this, void 0, void 0, function* () {
             const ret = { total: 0, list: null };
             pageSize = pageSize - 0;
@@ -267,10 +364,10 @@ class MysqlDao {
             let count = 0;
             for (let i = 0; i < tblLen; i++) {
                 if (data.length < limit && searchWhere['$limit'].limit > 0) {
-                    let d0 = yield this.findAll(entity, searchWhere, columns, false, false, false, withoutEntityClone, tableNames[i]);
+                    let d0 = yield this.findAll(entity, searchWhere, columns, false, false, false, withoutEntityClone, tableNames[i], requestId);
                     data = data.concat(d0);
                 }
-                let c0 = yield this.count(entity, where, tableNames[i]);
+                let c0 = yield this.count(entity, where, tableNames[i], requestId);
                 count += c0;
                 searchWhere['$limit'].limit = limit - data.length;
                 searchWhere['$limit'].start = start - count;
@@ -286,20 +383,25 @@ class MysqlDao {
             return ret;
         });
     }
-    query(sql, valueset, oneLimit) {
+    query(sql, valueset, oneLimit, requestId) {
         printSql(sql);
         return new Promise((resolve, reject) => {
-            this.getClient().query(sql, valueset || [], function (err, results, fields) {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                if (oneLimit) {
-                    results = results ? results[0] : null;
-                }
-                resolve(results);
+            this.getClient(requestId).then((connection) => {
+                connection.query(sql, valueset || [], function (err, results, fields) {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (oneLimit) {
+                        results = results ? results[0] : null;
+                    }
+                    resolve(results);
+                });
+            }).catch(err => {
+                reject(err);
             });
         });
     }
 }
 exports.default = MysqlDao;
+MysqlDao['singleton'] = true;
