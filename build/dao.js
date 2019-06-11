@@ -346,7 +346,7 @@ class MysqlDao {
                 page = 1;
             }
             const limit = pageSize - 0;
-            const start = (page - 1) * pageSize;
+            const start = page * pageSize;
             const searchWhere = {
                 $where: (where && where['$where']) ? where['$where'] : where
             };
