@@ -345,7 +345,7 @@ export default class MysqlDao {
     }
     page = page - 1
     if (!page || page < 1) {
-      page = 1
+      page = 0
     }
 
     const limit = pageSize - 0
