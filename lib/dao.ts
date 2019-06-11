@@ -349,7 +349,7 @@ export default class MysqlDao {
     }
 
     const limit = pageSize - 0
-    const start = (page - 1) * pageSize
+    const start = page * pageSize
 
     const searchWhere: any = {
       $where: (where && where['$where']) ? where['$where'] : where
