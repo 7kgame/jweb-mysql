@@ -11,6 +11,14 @@ interface SelectOptions {
   $limit?: LIMIT
 }
 
+const escapeTableName = function (tbl: string) {
+  let pos = tbl.indexOf('.')
+  if (pos <= 0) {
+    return escapeId(tbl)
+  }
+  return escapeId(tbl.substr(0, pos)) + '.' + escapeId(tbl.substr(pos + 1))
+}
+
 export { SelectOptions, ORDER_BY, LIMIT, WHERE }
 
 export const getTableNameBy = function (entity: any, options?: SelectOptions | WHERE | WHERE[] | object, supportMulti?: boolean): string | string[] {
@@ -184,7 +192,7 @@ export default class Utils {
 
   static generateInsertSql(tbName: string, valueset: object): string {
     valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset
-    let template = `INSERT INTO ${escapeId(tbName)}(`
+    let template = `INSERT INTO ${escapeTableName(tbName)} (`
     for (let k of Object.keys(valueset)) {
       template += escapeId(k) + ", "
     }
@@ -198,7 +206,7 @@ export default class Utils {
 
   static generateUpdateSql(tbName: string, valueset: object, $where?: SelectOptions | WHERE | WHERE[] | object): string {
     valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset
-    let template = `UPDATE ${escapeId(tbName)} SET `
+    let template = `UPDATE ${escapeTableName(tbName)} SET `
     for (let  [k, v] of Object.entries(valueset)) {
       template += `${escapeId(k)} = ${escape(v)}, `
     }
@@ -207,7 +215,7 @@ export default class Utils {
   }
 
   static generateDeleteSql(tbName: string, $where?: SelectOptions | WHERE | WHERE[] | object): string {
-    let template = `DELETE FROM ${escapeId(tbName)}`
+    let template = `DELETE FROM ${escapeTableName(tbName)}`
     return template + this.generateWhereSql($where)
   }
 
@@ -223,7 +231,7 @@ export default class Utils {
       template += '*'
     }
 
-    template += ` FROM ${escapeId(tbName)}`
+    template += ` FROM ${escapeTableName(tbName)}`
     return template + this.generateWhereSql(options, withLock, oneLimit)
   }
 

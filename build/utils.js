@@ -2,6 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mysql_1 = require("mysql");
 const jbean_1 = require("jbean");
+const escapeTableName = function (tbl) {
+    let pos = tbl.indexOf('.');
+    if (pos <= 0) {
+        return mysql_1.escapeId(tbl);
+    }
+    return mysql_1.escapeId(tbl.substr(0, pos)) + '.' + mysql_1.escapeId(tbl.substr(pos + 1));
+};
 exports.getTableNameBy = function (entity, options, supportMulti) {
     if (typeof entity === 'object') {
         entity = entity.constructor;
@@ -80,7 +87,7 @@ class Utils {
     }
     static generateInsertSql(tbName, valueset) {
         valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset;
-        let template = `INSERT INTO ${mysql_1.escapeId(tbName)}(`;
+        let template = `INSERT INTO ${escapeTableName(tbName)} (`;
         for (let k of Object.keys(valueset)) {
             template += mysql_1.escapeId(k) + ", ";
         }
@@ -93,7 +100,7 @@ class Utils {
     }
     static generateUpdateSql(tbName, valueset, $where) {
         valueset = (valueset && valueset['toObject']) ? valueset['toObject']() : valueset;
-        let template = `UPDATE ${mysql_1.escapeId(tbName)} SET `;
+        let template = `UPDATE ${escapeTableName(tbName)} SET `;
         for (let [k, v] of Object.entries(valueset)) {
             template += `${mysql_1.escapeId(k)} = ${mysql_1.escape(v)}, `;
         }
@@ -101,7 +108,7 @@ class Utils {
         return template + this.generateWhereSql($where);
     }
     static generateDeleteSql(tbName, $where) {
-        let template = `DELETE FROM ${mysql_1.escapeId(tbName)}`;
+        let template = `DELETE FROM ${escapeTableName(tbName)}`;
         return template + this.generateWhereSql($where);
     }
     static generateSelectSql(tbName, options, columns, withoutEscapeKey, withLock, oneLimit) {
@@ -116,7 +123,7 @@ class Utils {
         else {
             template += '*';
         }
-        template += ` FROM ${mysql_1.escapeId(tbName)}`;
+        template += ` FROM ${escapeTableName(tbName)}`;
         return template + this.generateWhereSql(options, withLock, oneLimit);
     }
     static makeWhereByPK(entity, id) {

@@ -42,7 +42,7 @@ describe("测试工具类", () => {
     )
     assert.strictEqual(
       template,
-      "INSERT INTO `city`(`Name`, `CountryCode`, `District`, `Population`) VALUES ('ChangSha', 'CHN', 'South', '10000000');"
+      "INSERT INTO `city` (`Name`, `CountryCode`, `District`, `Population`) VALUES ('ChangSha', 'CHN', 'South', '10000000');"
     )
   })
 
