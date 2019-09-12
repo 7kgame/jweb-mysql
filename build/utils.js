@@ -143,6 +143,7 @@ class Utils {
         return where;
     }
 }
+exports.default = Utils;
 Utils.methods = {
     templateAppendWhere(template, $where) {
         const where = [].concat($where);
@@ -236,4 +237,3 @@ Utils.methods = {
         return template;
     }
 };
-exports.default = Utils;
