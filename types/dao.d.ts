@@ -8,7 +8,7 @@ export type UPDATE_RESULT = {affected: number, changed: number}
 
 export interface SelectOptions {
   $where?: WHERE | WHERE[],
-  $orderby?: ORDER_BY,
+  $orderBy?: ORDER_BY,
   $limit?: LIMIT
 }
 
